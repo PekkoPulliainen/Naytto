@@ -3,10 +3,9 @@ import Player from "./player.js";
 
 class Game {
   constructor(hudCtx, spriteCtx, boardCtx, collisionCtx) {
-    //this.hud = new Hud(hudCtx); // Context for the HUD (Heads-Up Display)
-    this.spriteCtx = spriteCtx; // Context for the player and enemy sprites
-    this.board = new Board(boardCtx, collisionCtx); // Create a new Board instance
-    this.collisionCtx = collisionCtx; // Context for the collision map
+    this.spriteCtx = spriteCtx;
+    this.board = new Board(boardCtx, collisionCtx);
+    this.collisionCtx = collisionCtx;
     this.player = new Player(spriteCtx);
 
     this.startmusic = new Audio("./dist/sfx/overworldstart.ogg");
@@ -14,35 +13,27 @@ class Game {
     this.music = new Audio("./dist/sfx/overworld.ogg");
     this.music.volume = 0.1;
 
-    document.addEventListener("keydown", (e) => {
-      this.startmusic.play(); // Play the start music
+    document.addEventListener("keydown", () => {
+      this.startmusic.play();
       setTimeout(() => {
         this.music.play();
-        this.music.loop = true; // Loop the music
-      }, 6410); // Delay the start music for 6.41 seconds
+        this.music.loop = true;
+      }, 6410);
     });
   }
 
   init() {
-    this.board.render(); // Render the board
-    requestAnimationFrame(() => this.gameLoop()); // Start the game loop
+    this.board.render();
+    requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
   }
 
-  gameLoop() {
-    //this.clear(); // Clear the canvas
-    //this.step(this.collisionCtx); // Update the game state
-    //this.draw(); // Draw the game state
-    this.player.update();
+  gameLoop(timestamp) {
+    this.player.update(timestamp);
     this.player.draw();
-    requestAnimationFrame(() => this.gameLoop()); // Request the next frame
+    requestAnimationFrame((t) => this.gameLoop(t));
   }
-
-  //clear() {}
-
-  //step(collisionCtx) {}
-
-  //draw() {}
 }
 
-export default Game; // Export the Game class for use in other modules
+export default Game;
+
 
