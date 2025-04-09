@@ -4,66 +4,150 @@ class Player {
     this.sprite = new Image();
     this.sprite.src = "./dist/images/player/link.png";
 
-    // Char size
-    this.frameWidth = 48; 
+    this.frameWidth = 48;
     this.frameHeight = 48;
 
-    // Spawn point
     this.x = 400;
     this.y = 400;
     this.speed = 3;
 
-    // Sprite frame and animation setup
     this.frameX = 0;
+    this.playerFrameX = 0;
     this.direction = 0;
+
     this.lastToggle = 0;
+    this.facing = "s"; // STARt FACING DOWN
+    this.attacking = false;
+    this.attackFrameTimer = 0;
 
     this.keys = {};
-    window.addEventListener("keydown", (e) => this.keys[e.key.toLowerCase()] = true);
-    window.addEventListener("keyup", (e) => this.keys[e.key.toLowerCase()] = false);
+    this.canAttack = true;  // ALLOW ATTACKS
+    this.spacePressed = false;
+
+    window.addEventListener("keydown", (e) => this.handleKeyDown(e));
+    window.addEventListener("keyup", (e) => this.handleKeyUp(e));
   }
 
-  // MOVING
+  handleKeyDown(e) {
+    // SO SPACE HOLD ATTACK ISNT POSSIBLE
+    if (e.key.toLowerCase() === " " && !this.spacePressed && this.canAttack) {
+      this.keys[e.key.toLowerCase()] = true;
+      this.spacePressed = true;
+
+      // ATTACK
+      this.attacking = true;
+      this.direction = 2;  // FOR ATTACK ANIMATIONS CORRECT DIRECTION
+      this.attackFrameTimer = performance.now();
+      this.canAttack = false;
+    } else {
+      // Handle other keys like WASD for movement
+      this.keys[e.key.toLowerCase()] = true;
+    }
+  }
+
+  handleKeyUp(e) {
+    if (e.key.toLowerCase() === " ") {
+      this.spacePressed = false;
+    }
+    this.keys[e.key.toLowerCase()] = false;
+  }
+
   update(timestamp) {
     let moving = false;
 
-    if (this.keys["w"]) {
-      this.y -= this.speed;
-      this.frameX = 2;
-      moving = true;
-    } else if (this.keys["s"]) {
-      this.y += this.speed;
-      this.frameX = 0;
-      moving = true;
-    } else if (this.keys["a"]) {
-      this.x -= this.speed;
-      this.frameX = 1;
-      moving = true;
-    } else if (this.keys["d"]) {
-      this.x += this.speed;
-      this.frameX = 3;
-      moving = true;
+    // MOVING
+    if (!this.attacking) {
+      if (this.keys["w"]) {
+        this.y -= this.speed;
+        this.playerFrameX = 2;
+        this.facing = "w";
+        moving = true;
+      } else if (this.keys["s"]) {
+        this.facing = "s";
+        this.playerFrameX = 0;
+        this.y += this.speed;
+        moving = true;
+      } else if (this.keys["a"]) {
+        this.x -= this.speed;
+        this.playerFrameX = 1;
+        this.facing = "a";
+        moving = true;
+      } else if (this.keys["d"]) {
+        this.x += this.speed;
+        this.playerFrameX = 3;
+        this.facing = "d";
+        moving = true;
+      }
     }
 
-    // Toggle animation row every 0.5s if moving
-    if (moving && timestamp - this.lastToggle > 500) {
+    // Switch direction if moving
+    if (moving && timestamp - this.lastToggle > 300) {
       this.direction = this.direction === 0 ? 1 : 0;
       this.lastToggle = timestamp;
     }
 
-    // Reset to default frame if not moving
-    if (!moving) {
+    // SWORD FRAMES, 1 ATTACK IS 200MS
+    if (this.attacking) {
+      if (timestamp - this.attackFrameTimer < 200) {
+        switch (this.facing) {
+          case "w":
+            this.frameX = 31;
+            break;
+          case "s":
+            this.frameX = 29;
+            break;
+          case "a":
+            this.frameX = 30;
+            break;
+          case "d":
+            this.frameX = 32;
+            break;
+        }
+      } else {
+        this.attacking = false; // END ATTACK AFTER 200MS
+        this.canAttack = true; 
+        console.log("attack is stopping");
+      }
+    }
+
+    // Reset direction when not moving or attacking
+    if (!moving && !this.attacking) {
       this.direction = 0;
     }
   }
 
-  // Drawing player
   draw() {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
+    // SWORD
+    if (this.attacking) {
+      let swordX = this.x;
+      let swordY = this.y;
+
+      switch (this.facing) {
+        case "w": swordY -= this.frameHeight; break;
+        case "s": swordY += this.frameHeight; break;
+        case "a": swordX -= this.frameWidth; break;
+        case "d": swordX += this.frameWidth; break;
+      }
+
+      this.ctx.drawImage(
+        this.sprite,
+        this.frameX * this.frameWidth,
+        0,
+        this.frameWidth,
+        this.frameHeight,
+        swordX,
+        swordY,
+        this.frameWidth,
+        this.frameHeight
+      );
+    }
+
+    // PLAYER
     this.ctx.drawImage(
       this.sprite,
-      this.frameX * this.frameWidth,
+      this.playerFrameX * this.frameWidth,
       this.direction * this.frameHeight,
       this.frameWidth,
       this.frameHeight,
@@ -76,3 +160,4 @@ class Player {
 }
 
 export default Player;
+
