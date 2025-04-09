@@ -3,7 +3,6 @@ class Player {
     this.ctx = ctx;
     this.sprite = new Image();
     this.sprite.src = "./dist/images/player/link.png";
-
     this.frameWidth = 48;
     this.frameHeight = 48;
 
@@ -29,6 +28,10 @@ class Player {
   }
 
   handleKeyDown(e) {
+
+    // ATTACK SOUND
+    const swordSound = new Audio("./dist/sfx/sword.wav");
+    swordSound.preload = "auto";
     // SO SPACE HOLD ATTACK ISNT POSSIBLE
     if (e.key.toLowerCase() === " " && !this.spacePressed && this.canAttack) {
       this.keys[e.key.toLowerCase()] = true;
@@ -36,6 +39,9 @@ class Player {
 
       // ATTACK
       this.attacking = true;
+      swordSound.currentTime = 0; 
+      swordSound.play();
+
       this.direction = 2;  // FOR ATTACK ANIMATIONS CORRECT DIRECTION
       this.attackFrameTimer = performance.now();
       this.canAttack = false;
