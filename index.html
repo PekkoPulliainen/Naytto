@@ -3,17 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Näyttö</title>
+
     <link rel="stylesheet" href="./dist/game.css" type="text/css" />
   </head>
   <body>
-    <div id="game-container">
-      <canvas id="menu-canvas"></canvas>
-      <canvas id="sprite-canvas"></canvas>
-      <canvas id="map-canvas"></canvas>
-      <canvas id="collision-canvas"></canvas>
-      <div id="canvas-underlayer"></div>
+    <div id="page-container">
+      <header>
+        <img id="logo" src="./dist/images/ui/logo2.png" />
+      </header>
+
+      <div id="game-container">
+        <canvas id="menu-canvas"></canvas>
+        <canvas id="sprite-canvas"></canvas>
+        <canvas id="map-canvas"></canvas>
+        <canvas id="collision-canvas"></canvas>
+        <div id="canvas-underlayer"></div>
+      </div>
     </div>
+    <div id="page-footer"></div>
     <script type="module" src="main.js"></script>
   </body>
 </html>
