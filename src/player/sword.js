@@ -1,65 +1,149 @@
-const swordSprite = new Image();
-swordSprite.src = "./dist/images/player/link.png";
-
-const swordSound = new Audio("./dist/sfx/sword.wav");
-swordSound.preload = "auto";
-swordSound.volume = 0.5;
-
 export class Sword {
   constructor(ctx) {
     this.ctx = ctx;
-    this.attacking = false;
+    this.sprite = new Image();
+    this.sprite.src = "./dist/images/player/link.png"; // Or sword-specific sprite
+
     this.frameX = 0;
-    this.attackFrameTimer = 0;
+    this.attacking = false;
+    this.launching = false;
     this.facing = "s";
+    this.flyX = 0;
+    this.flyY = 0;
+    this.flyDistance = 0;
+    this.maxDistance = 200; // DISTANCE FOR SWORD
+    this.speed = 6;
+
+    this.sound = new Audio("./dist/sfx/sword.wav");
   }
 
   startAttack(facing) {
-    if (this.attacking) return;
     this.attacking = true;
-    this.attackFrameTimer = performance.now();
     this.facing = facing;
-
-    switch (facing) {
-      case "w": this.frameX = 31; break;
-      case "s": this.frameX = 29; break;
-      case "a": this.frameX = 30; break;
-      case "d": this.frameX = 32; break;
-    }
-
-    swordSound.currentTime = 0;
-    swordSound.play();
+    this.sound.currentTime = 0;
+    this.sound.play();
   }
 
-  update(timestamp) {
-    if (this.attacking && timestamp - this.attackFrameTimer >= 200) {
-      this.attacking = false;
+  launch(facing, startX, startY) {
+    this.launching = true;
+    this.facing = facing;
+    this.flyX = startX;
+    this.flyY = startY;
+    this.flyDistance = 0;
+    this.sound.currentTime = 0;
+    this.sound.play();
+  }
+
+  update(timestamp, attacking) {
+    // Manage attacking state: end after 200ms
+    if (attacking) {
+      if (!this.attacking) {
+        this.attacking = true;
+        this.attackTimer = timestamp; // Start the attack timer
+      }
+
+      // End attack after 200ms
+      if (timestamp - this.attackTimer >= 200) {
+        this.attacking = false; // Stop attacking
+        console.log("Sword attack finished");
+      }
+    } else {
+      this.attacking = false; // Reset attacking state if no longer attacking
+    }
+
+    // SWORD LAUNCHING
+    if (this.launching) {
+      const move = this.speed;
+      switch (this.facing) {
+        case "w":
+          this.flyY -= move;
+          break;
+        case "s":
+          this.flyY += move;
+          break;
+        case "a":
+          this.flyX -= move;
+          break;
+        case "d":
+          this.flyX += move;
+          break;
+      }
+      this.flyDistance += move;
+
+      if (this.flyDistance >= this.maxDistance) {
+        this.launching = false; 
+      }
     }
   }
 
-  draw(x, y, frameWidth, frameHeight) {
-    if (!this.attacking) return;
+  draw(playerX, playerY, frameWidth, frameHeight) {
+    if (this.launching) {
+      this.ctx.drawImage(
+        this.sprite,
+        this.getFlyingFrameX() * frameWidth,
+        0,
+        frameWidth,
+        frameHeight,
+        this.flyX,
+        this.flyY,
+        frameWidth,
+        frameHeight
+      );
+      return;
+    }
 
-    let swordX = x;
-    let swordY = y;
+    // Draw the attacking sword if in attacking state (but not launching)
+    if (this.attacking) {
+      let swordX = playerX;
+      let swordY = playerY;
 
+      switch (this.facing) {
+        case "w":
+          swordY -= frameHeight - 10;
+          swordX -= 3.5;
+          this.frameX = 31;
+          break;
+        case "s":
+          swordY += frameHeight - 12;
+          swordX += 2;
+          this.frameX = 29;
+          break;
+        case "a":
+          swordX -= frameWidth - 12;
+          swordY -= 1.5;
+          this.frameX = 30;
+          break;
+        case "d":
+          swordX += frameWidth - 12;
+          swordY -= 1.5;
+          this.frameX = 32;
+          break;
+      }
+
+      this.ctx.drawImage(
+        this.sprite,
+        this.frameX * frameWidth,
+        0,
+        frameWidth,
+        frameHeight,
+        swordX,
+        swordY,
+        frameWidth,
+        frameHeight
+      );
+    }
+  }
+
+  getFlyingFrameX() {
     switch (this.facing) {
-      case "w": swordY -= frameHeight - 10; swordX -= 3.5; break;
-      case "s": swordY += frameHeight - 12; swordX += 2; break;
-      case "a": swordX -= frameWidth - 12; swordY -= 1.5; break;
-      case "d": swordX += frameWidth - 12; swordY -= 1.5; break;
+      case "w":
+        return 31;
+      case "s":
+        return 29;
+      case "a":
+        return 30;
+      case "d":
+        return 32;
     }
-
-    this.ctx.drawImage(
-      swordSprite,
-      this.frameX * frameWidth,
-      0,
-      frameWidth,
-      frameHeight,
-      swordX,
-      swordY,
-      frameWidth,
-      frameHeight
-    );
   }
 }

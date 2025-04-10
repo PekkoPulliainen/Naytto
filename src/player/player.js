@@ -34,6 +34,26 @@ class Player {
     window.addEventListener("keyup", (e) => this.handleKeyUp(e)); // KEYUP EVENT
   }
 
+  // HP FUNKTIO
+
+  hP(i, number = 1) {
+    switch (i) {
+      case "damage":
+        this.hpCount = Math.max(0, this.hpCount - number);
+        break;
+      case "heal":
+        this.hpCount = Math.min(6, this.hpCount + number);
+        break;
+      case "set":
+        this.hpCount = Math.max(0, Math.min(6, number));
+        break;
+      case "fullhp":
+        return this.hpCount === 6;
+    }
+  }
+
+  
+
   setAlive(alive) {
     this.alive = alive; // SET ALIVE STATE
   }
@@ -51,7 +71,15 @@ class Player {
       this.keys[e.key.toLowerCase()] = true;
       this.spacePressed = true;
   
-      this.sword.startAttack(this.facing);
+      if (this.hP("fullhp")) {
+        this.sword.launch(this.facing, this.x, this.y); // SWORD SHOOT
+        console.log("shoot");
+        // FOR TESTING BOTH ATTACK METHODS
+        this.hpCount -=1;
+      } else {
+        this.sword.startAttack(this.facing);
+        console.log("normal");
+      }
   
       this.attacking = true;
       this.direction = 2; // FOR ATTACK ANIMATIONS CORRECT DIRECTION
@@ -72,7 +100,7 @@ class Player {
   update(timestamp) {
     if (!this.alive) return;
     let moving = false;
-
+  
     // MOVING
     if (!this.attacking) {
       if (this.keys["w"]) {
@@ -97,26 +125,28 @@ class Player {
         moving = true;
       }
     }
-
+  
     // ANIMATION DIRECTION TOGGLE
     if (moving && timestamp - this.lastToggle > 300) {
       this.direction = this.direction === 0 ? 1 : 0;
       this.lastToggle = timestamp;
     }
-
+  
     // ATTACK DURATION
     if (this.attacking && timestamp - this.attackFrameTimer >= 200) {
       this.attacking = false;
       this.canAttack = true;
-      console.log("attack is stopping");
+      console.log("Attack finished");
     }
-
-    this.sword.update(timestamp);
-
+  
+    // Update sword state
+    this.sword.update(timestamp, this.attacking);
+  
     if (!moving && !this.attacking) {
       this.direction = 0;
     }
   }
+  
 
   draw() {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -137,5 +167,8 @@ class Player {
   }
 }
 
+
 export default Player;
+
+
 
