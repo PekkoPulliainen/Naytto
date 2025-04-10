@@ -11,30 +11,46 @@ class Game {
     this.player = new Player(spriteCtx);
 
     this.musicPlaying = false;
+    this.musicMuted = false; // MUTE
+
     this.startMusic = new Audio("./dist/sfx/overworldstart.ogg");
     this.startMusic.volume = 0.1;
+
     this.music = new Audio("./dist/sfx/overworld.ogg");
     this.music.volume = 0.1;
 
     this.alive = false;
 
+    // Start the game with ENTER key
     document.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() !== "enter") return; // Only start the game on Enter key press
-      if (!this.alive) {
-        // Check if the game is not already started
-        this.alive = true; // Set alive to true when the game starts
-        this.hud.clearStartPage(); // Clear the start page
-        this.player.setAlive(true); // Set the player to alive
+      if (e.key.toLowerCase() === "enter") { // Only start the game on Enter key press
+        if (!this.alive) {
+          // Check if the game is not already started
+          this.alive = true; // Set alive to true when the game starts
+          this.hud.clearStartPage(); // Clear the start page
+          this.player.setAlive(true); // Set the player to alive
+        }
+
+        if (!this.musicPlaying) {
+          // Check if the music is not already playing
+          this.startMusic.play(); // Play the start music
+          this.musicPlaying = true;
+
+          setTimeout(() => {
+            // Delay the start of the main music
+            this.music.play();
+            this.music.loop = true;
+            this.music.muted = this.musicMuted;
+          }, 6410);
+        }
       }
-      if (!this.musicPlaying) {
-        // Check if the music is not already playing
-        this.startMusic.play(); // Play the start music
-        this.musicPlaying = true;
-        setTimeout(() => {
-          // Delay the start of the main music
-          this.music.play();
-          this.music.loop = true;
-        }, 6410);
+
+      // TOGGLE MUSIC
+      if (e.key.toLowerCase() === "m") {
+        this.musicMuted = !this.musicMuted;
+        this.music.muted = this.musicMuted;
+        this.startMusic.muted = this.musicMuted;
+        console.log(`Music ${this.musicMuted ? "muted" : "unmuted"}`);
       }
     });
   }
