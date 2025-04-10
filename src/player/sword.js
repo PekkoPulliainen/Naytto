@@ -86,7 +86,7 @@ export class Sword {
   updateBeamCD() {
     this.beamCooldownInterval = setInterval(() => {
       this.beamCooldown++;
-      if (this.beamCooldown === 30) {
+      if (this.beamCooldown === 10) {
         this.beamReady = true;
         clearInterval(this.beamCooldownInterval);
         this.beamCooldown = 0;
@@ -99,7 +99,7 @@ export class Sword {
       this.ctx.drawImage(
         this.beamSprite,
         this.getFlyingFrameX() * frameWidth,
-        0,
+        this.getFlyingFrameY() * frameHeight,
         frameWidth,
         frameHeight,
         this.flyX,
@@ -155,13 +155,26 @@ export class Sword {
   getFlyingFrameX() {
     switch (this.facing) {
       case "w":
-        return 31;
+        return 2;
       case "s":
-        return 29;
+        return 0;
       case "a":
-        return 30;
+        return 1;
       case "d":
-        return 32;
+        return 3;
+    }
+  }
+
+  getFlyingFrameY() {
+    switch (this.facing) {
+      case "w":
+        return 2;
+      case "s":
+        return 2;
+      case "a":
+        return 2;
+      case "d":
+        return 2;
     }
   }
 }
