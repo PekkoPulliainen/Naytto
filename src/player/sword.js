@@ -4,14 +4,19 @@ export class Sword {
     this.sprite = new Image();
     this.sprite.src = "./dist/images/player/link.png"; // Or sword-specific sprite
 
+    this.beamSprite = new Image();
+    this.beamSprite.src = "./dist/images/player/beams.png"; // Beam sprites
+
     this.frameX = 0;
     this.attacking = false;
     this.launching = false;
+    this.beamReady = true;
+    this.beamCooldown = 0;
     this.facing = "s";
     this.flyX = 0;
     this.flyY = 0;
     this.flyDistance = 0;
-    this.maxDistance = 200; // DISTANCE FOR SWORD
+    this.maxDistance = 400; // DISTANCE FOR SWORD
     this.speed = 6;
 
     this.sound = new Audio("./dist/sfx/sword.wav");
@@ -32,6 +37,7 @@ export class Sword {
     this.flyDistance = 0;
     this.sound.currentTime = 0;
     this.sound.play();
+    this.updateBeamCD();
   }
 
   update(timestamp, attacking) {
@@ -40,6 +46,7 @@ export class Sword {
       if (!this.attacking) {
         this.attacking = true;
         this.attackTimer = timestamp; // Start the attack timer
+        console.log("Beam cd: " + this.beamCooldown);
       }
 
       // End attack after 200ms
@@ -71,15 +78,26 @@ export class Sword {
       this.flyDistance += move;
 
       if (this.flyDistance >= this.maxDistance) {
-        this.launching = false; 
+        this.launching = false;
       }
     }
+  }
+
+  updateBeamCD() {
+    this.beamCooldownInterval = setInterval(() => {
+      this.beamCooldown++;
+      if (this.beamCooldown === 30) {
+        this.beamReady = true;
+        clearInterval(this.beamCooldownInterval);
+        this.beamCooldown = 0;
+      }
+    }, 100);
   }
 
   draw(playerX, playerY, frameWidth, frameHeight) {
     if (this.launching) {
       this.ctx.drawImage(
-        this.sprite,
+        this.beamSprite,
         this.getFlyingFrameX() * frameWidth,
         0,
         frameWidth,

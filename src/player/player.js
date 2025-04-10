@@ -52,35 +52,34 @@ class Player {
     }
   }
 
-  
-
   setAlive(alive) {
     this.alive = alive; // SET ALIVE STATE
   }
 
   handleKeyDown(e) {
     if (!this.alive) return; // DO NOT UPDATE IF DEAD
-  
+
     // NO SCROLL
     if (e.key === " " || e.code === "Space") {
       e.preventDefault();
     }
-    
+
     // SO SPACE HOLD ATTACK ISNT POSSIBLE
     if (e.key.toLowerCase() === " " && !this.spacePressed && this.canAttack) {
       this.keys[e.key.toLowerCase()] = true;
       this.spacePressed = true;
-  
-      if (this.hP("fullhp")) {
+
+      if (this.hP("fullhp") && this.sword.beamReady === true) {
+        this.sword.beamReady = false;
         this.sword.launch(this.facing, this.x, this.y); // SWORD SHOOT
         console.log("shoot");
         // FOR TESTING BOTH ATTACK METHODS
-        this.hpCount -=1;
+        //this.hpCount -=1;
       } else {
         this.sword.startAttack(this.facing);
         console.log("normal");
       }
-  
+
       this.attacking = true;
       this.direction = 2; // FOR ATTACK ANIMATIONS CORRECT DIRECTION
       this.attackFrameTimer = performance.now();
@@ -100,7 +99,7 @@ class Player {
   update(timestamp) {
     if (!this.alive) return;
     let moving = false;
-  
+
     // MOVING
     if (!this.attacking) {
       if (this.keys["w"]) {
@@ -125,28 +124,27 @@ class Player {
         moving = true;
       }
     }
-  
+
     // ANIMATION DIRECTION TOGGLE
-    if (moving && timestamp - this.lastToggle > 300) {
+    if (moving && timestamp - this.lastToggle > 150) {
       this.direction = this.direction === 0 ? 1 : 0;
       this.lastToggle = timestamp;
     }
-  
+
     // ATTACK DURATION
     if (this.attacking && timestamp - this.attackFrameTimer >= 200) {
       this.attacking = false;
       this.canAttack = true;
       console.log("Attack finished");
     }
-  
+
     // Update sword state
     this.sword.update(timestamp, this.attacking);
-  
+
     if (!moving && !this.attacking) {
       this.direction = 0;
     }
   }
-  
 
   draw() {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -167,8 +165,4 @@ class Player {
   }
 }
 
-
 export default Player;
-
-
-
