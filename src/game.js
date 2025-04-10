@@ -1,6 +1,7 @@
 import Board from "./board.js";
 import Hud from "./hud/hud.js";
 import Player from "./player/player.js";
+import Sword from "./player/sword.js";
 
 class Game {
   constructor(hudCtx, spriteCtx, boardCtx, collisionCtx) {
@@ -23,7 +24,8 @@ class Game {
 
     // Start the game with ENTER key
     document.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() === "enter") { // Only start the game on Enter key press
+      if (e.key.toLowerCase() === "enter") {
+        // Only start the game on Enter key press
         if (!this.alive) {
           // Check if the game is not already started
           this.alive = true; // Set alive to true when the game starts
@@ -64,7 +66,12 @@ class Game {
 
   gameLoop(timestamp) {
     this.player.update(timestamp); // Update the player
+
     this.player.draw(); // Draw the player
+    if (this.player.sword.launching) {
+      this.player.drawBeam();
+    }
+
     requestAnimationFrame((t) => this.gameLoop(t)); // Request the next animation frame
   }
 }

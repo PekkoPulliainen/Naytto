@@ -6,6 +6,9 @@ class Player {
     this.sprite = new Image();
     this.sprite.src = "./dist/images/player/link.png";
 
+    this.beamSprite = new Image();
+    this.beamSprite.src = "./dist/images/player/beams.png";
+
     this.frameWidth = 48;
     this.frameHeight = 48;
 
@@ -69,15 +72,17 @@ class Player {
       this.keys[e.key.toLowerCase()] = true;
       this.spacePressed = true;
 
+      this.sword.startAttack(this.facing);
+      console.log("normal");
+
       if (this.hP("fullhp") && this.sword.beamReady === true) {
         this.sword.beamReady = false;
-        this.sword.launch(this.facing, this.x, this.y); // SWORD SHOOT
+        setTimeout(() => {
+          this.sword.launch(this.facing, this.x, this.y); // SWORD SHOOT
+        }, 200);
         console.log("shoot");
         // FOR TESTING BOTH ATTACK METHODS
         //this.hpCount -=1;
-      } else {
-        this.sword.startAttack(this.facing);
-        console.log("normal");
       }
 
       this.attacking = true;
@@ -102,22 +107,22 @@ class Player {
 
     // MOVING
     if (!this.attacking) {
-      if (this.keys["w"]) {
+      if (this.keys["w"] || this.keys["arrowup"]) {
         this.y -= this.speed;
         this.playerFrameX = 2;
         this.facing = "w";
         moving = true;
-      } else if (this.keys["s"]) {
+      } else if (this.keys["s"] || this.keys["arrowdown"]) {
         this.facing = "s";
         this.playerFrameX = 0;
         this.y += this.speed;
         moving = true;
-      } else if (this.keys["a"]) {
+      } else if (this.keys["a"] || this.keys["arrowleft"]) {
         this.x -= this.speed;
         this.playerFrameX = 1;
         this.facing = "a";
         moving = true;
-      } else if (this.keys["d"]) {
+      } else if (this.keys["d"] || this.keys["arrowright"]) {
         this.x += this.speed;
         this.playerFrameX = 3;
         this.facing = "d";
@@ -132,7 +137,7 @@ class Player {
     }
 
     // ATTACK DURATION
-    if (this.attacking && timestamp - this.attackFrameTimer >= 200) {
+    if (this.attacking && timestamp - this.attackFrameTimer >= 300) {
       this.attacking = false;
       this.canAttack = true;
       console.log("Attack finished");
@@ -162,6 +167,14 @@ class Player {
       this.frameWidth,
       this.frameHeight
     );
+
+    if (this.sword.explosion) {
+      this.sword.beamExplosion(this.sword.flyX, this.sword.flyY);
+    }
+  }
+
+  drawBeam() {
+    this.sword.drawBeam(this.x, this.y, this.frameWidth, this.frameHeight);
   }
 }
 
