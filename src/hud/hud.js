@@ -1,8 +1,15 @@
 import * as Util from "../util/util.js";
+import Player from "../player/player.js";
+
 
 class Hud {
   constructor(ctx) {
     this.ctx = ctx;
+
+    // PELAAJA
+
+    this.player = new Player();
+
     this.menu = new Image();
     this.menu.src = "./dist/images/ui/menu.png"; // Menu image
     this.hudPosition = { x: 0, y: 0 }; // Position of the HUD on the canvas
@@ -15,8 +22,13 @@ class Hud {
 
     this.hearts = new Image();
     this.hearts.src = "./dist/images/items/hearts.png"; // Hearts image
-    this.maxHPCount = 6; // Maximum health points
 
+    this.hpCount = 6;
+
+    // FOR TESTING
+    this.player.hP("damage", 2);
+    this.player.hP("heal", 2);
+    
     this.numbers = new Image();
     this.numbers.src = "./dist/images/ui/numbers.png"; // Numbers image
 
@@ -45,7 +57,7 @@ class Hud {
       768,
       696
     );
-    this.updateHearts(6); // Update hearts with a placeholder value
+    this.updateHearts(this.player.hpCount); // Update hearts with a placeholder value
     this.updateMinimap({ x: 7, y: 7 });
     this.updateMoney(99);
     this.updateKeys(0);
@@ -54,21 +66,21 @@ class Hud {
     this.updateSecondary(0);
   }
   updateHearts(hpCount) {
-    this.ctx.fillStyle = "black"; // Set fill color to black
-    this.ctx.fillRect(528, 96, 192, 48); // Clear the heart area
-    for (let i = 0; i < this.maxHPCount / 2; i++) {
-      // Loop through half the max HP count
+    this.ctx.fillStyle = "black";
+    this.ctx.fillRect(528, 96, 192, 48);
+
+    for (let i = 0; i < this.player.hpCount / 2; i++) {
       this.ctx.drawImage(
         this.hearts,
-        i < hpCount ? 24 : 72, // Draw filled, half heart or empty heart based on hpCount
+        i < hpCount ? 24 : 72,
         0,
         24,
         24,
-        528 + 24 * i, // Position the hearts vertically
+        528 + 24 * i,
         96,
         26,
         24
-      ); // Draw hearts
+      );
     }
   }
 

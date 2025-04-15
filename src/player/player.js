@@ -38,6 +38,7 @@ class Player {
   }
 
   // HP FUNKTIO
+
   hP(i, number = 1) {
     switch (i) {
       case "damage":
