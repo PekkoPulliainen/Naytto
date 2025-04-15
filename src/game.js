@@ -2,6 +2,8 @@ import Board from "./board.js";
 import Hud from "./hud/hud.js";
 import Player from "./player/player.js";
 import Sword from "./player/sword.js";
+import * as constants from "./util/constants.js";
+import * as Util from "./util/util.js";
 
 class Game {
   constructor(hudCtx, spriteCtx, boardCtx, collisionCtx) {
@@ -9,7 +11,15 @@ class Game {
     this.spriteCtx = spriteCtx;
     this.board = new Board(boardCtx, collisionCtx);
     this.collisionCtx = collisionCtx;
-    this.player = new Player(spriteCtx);
+    this.player = new Player(spriteCtx, collisionCtx);
+
+    this.scrolling = false;
+    this.scrollQueue = 0;
+
+    this.units = [];
+    this.grid = null;
+    this.openSpaces = null;
+    this.enemyCount = 0;
 
     this.musicPlaying = false;
     this.musicMuted = false; // MUTE
@@ -60,19 +70,239 @@ class Game {
   init() {
     this.board.render(); // Render the board
     this.hud.render(); // Render the HUD
+    //this.player.render();
     this.hud.renderStartPage(); // Render the start page
     requestAnimationFrame((timestamp) => this.gameLoop(timestamp)); // Start the game loop
   }
 
   gameLoop(timestamp) {
+    this.clear();
+    this.step(this.collisionCtx);
+    this.draw();
+    this.player.move(null, null, null);
     this.player.update(timestamp); // Update the player
-
-    this.player.draw(); // Draw the player
+    this.player.drawImage();
     if (this.player.sword.launching) {
       this.player.drawBeam();
     }
 
     requestAnimationFrame((t) => this.gameLoop(t)); // Request the next animation frame
+  }
+
+  clear() {
+    //this.clearUnits();
+    //this.clearAttacks();
+    this.player.clear();
+  }
+
+  step(collisionCtx) {
+    this.checkBorder();
+    this.scroll(collisionCtx);
+    this.processInput(collisionCtx);
+    //this.stepUnits(collisionCtx)
+    this.player.step();
+  }
+
+  draw() {
+    if (this.player.hpCount <= 0) {
+      //this.hud.renderDeathPage();
+      this.music.pause();
+      this.music.currentTime = 0;
+    }
+    //this.drawEnemies();
+    //this.drawAttacks();
+    //this.player.render();
+  }
+
+  scanGrid(ctx) {
+    let newGrid = [];
+    let openSpaces = [];
+    for (let y = 168; y < 696; y += 48) {
+      let row = [];
+      for (let x = 0; x < 768; x += 48) {
+        let value = Util.scanMapTile(ctx, x, y);
+        row.push(value);
+        if (value === 1020) openSpaces.push([x, y]);
+      }
+      newGrid.push(row);
+    }
+    this.openSpaces = openSpaces;
+    this.grid = newGrid;
+  }
+
+  knockBackPlayer(ctx) {
+    let faceDirection = this.player.pos.direction;
+    let x = this.player.pos.x;
+    let y = this.player.pos.y;
+
+    if (
+      faceDirection === 96 &&
+      y < 634 &&
+      !this.impassableTerrain("down", ctx)
+    ) {
+      this.player.move(0, 12);
+    } else if (
+      faceDirection === 144 &&
+      x > 14 &&
+      !this.impassableTerrain("left", ctx)
+    ) {
+      this.player.move(-12, 0);
+    } else if (
+      faceDirection === 0 &&
+      y > 188 &&
+      !this.impassableTerrain("up", ctx)
+    ) {
+      this.player.move(0, -12);
+    } else if (
+      faceDirection === 48 &&
+      x < 706 &&
+      !this.impassableTerrain("right", ctx)
+    ) {
+      this.player.move(12, 0);
+    }
+  }
+
+  scroll(collisionCtx) {
+    if (!this.scrolling) return;
+    if (this.scrollQueue <= 0) {
+      this.hud.updateMinimap(this.board.getMapPos());
+      this.scrolling = false;
+      this.board.drawCollisionMap(collisionCtx);
+      this.scanGrid(collisionCtx);
+      //this.setEnemySpawns();
+    } else {
+      let playerDirection = this.player.pos.direction2;
+      if (playerDirection === 96) {
+        this.board.pos.y -= 8;
+        if (this.scrollQueue > 48) this.player.move(0, 8, "up");
+      }
+      if (playerDirection === 144) {
+        this.board.pos.x += 8;
+        if (this.scrollQueue > 48) this.player.move(-8, 0, "right");
+      }
+      if (playerDirection === 0) {
+        this.board.pos.y += 8;
+        if (this.scrollQueue > 48) this.player.move(0, -8, "down");
+      }
+      if (playerDirection === 48) {
+        this.board.pos.x -= 8;
+        if (this.scrollQueue > 48) this.player.move(8, 0, "left");
+      }
+      this.scrollQueue -= 8;
+      this.board.drawWorld();
+    }
+  }
+
+  checkBorder() {
+    // function detects when the player crosses the screen boundaries and prepares the game for a screen transition by enabling scrolling and setting the appropriate scroll distance. This ensures smooth transitions between different areas of the game world.
+    if (
+      this.player.pos.y < constants.BORDERTOP ||
+      this.player.pos.y > constants.BORDERBOTTOM
+    ) {
+      this.scrolling = true;
+      console.log("scrolling up/down");
+      //this.destroyUnits();
+      this.scrollQueue = 528;
+    }
+    if (
+      this.player.pos.x > constants.BORDERRIGHT ||
+      this.player.pos.x < constants.BORDERLEFT
+    ) {
+      this.scrolling = true;
+      console.log("scrolling right/left");
+      //this.destroyUnits();
+      this.scrollQueue = 768;
+    }
+  }
+
+  checkIfBarrier(pixel1, pixel2) {
+    let pixel1value = Util.sumArr(pixel1);
+    let pixel2value = Util.sumArr(pixel2);
+    if (pixel1value === constants.WALL || pixel1value === constants.WATER) {
+      return true;
+    }
+    if (pixel2value === constants.WALL || pixel2value === constants.WATER) {
+      return true;
+    }
+    return false;
+  }
+
+  impassableTerrain(direction, ctx) {
+    if (direction === "up") {
+      const topPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.topLeft[0],
+        this.player.traceBox.topLeft[1] - 3
+      );
+      const bottomPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.topRight[0],
+        this.player.traceBox.topRight[1] - 3
+      );
+      return this.checkIfBarrier(topPixel, bottomPixel);
+    } else if (direction === "right") {
+      const topPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.topRight[0] + 3,
+        this.player.traceBox.topRight[1]
+      );
+      const bottomPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.bottomRight[0] + 3,
+        this.player.traceBox.bottomRight[1]
+      );
+      return this.checkIfBarrier(topPixel, bottomPixel);
+    } else if (direction === "down") {
+      const topPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.bottomLeft[0],
+        this.player.traceBox.bottomLeft[1] + 3
+      );
+      const bottomPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.bottomRight[0],
+        this.player.traceBox.bottomRight[1] + 3
+      );
+      return this.checkIfBarrier(topPixel, bottomPixel);
+    } else if (direction === "left") {
+      const topPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.topLeft[0] - 3,
+        this.player.traceBox.topRight[1]
+      );
+      const bottomPixel = Util.getMapPixel(
+        ctx,
+        this.player.traceBox.bottomLeft[0] - 3,
+        this.player.traceBox.bottomLeft[1] // it's like I have to have 1 thing for finding the player location then their hitbox and then follow both when I move so the game knows exactly where I am and can constantly draw the map again depending on my location. Look I'll show you.
+      );
+      return this.checkIfBarrier(topPixel, bottomPixel);
+    }
+  }
+
+  processInput(ctx) {
+    if (this.scrolling) return;
+    if (!this.alive) return;
+    let direction = this.player.getInput();
+    console.log("direction: " + direction);
+    let speed = null;
+    switch (direction) {
+      case "up":
+        speed = this.impassableTerrain(direction, ctx) ? 0 : -4;
+        this.player.move(0, speed, direction);
+        break;
+      case "right":
+        speed = this.impassableTerrain(direction, ctx) ? 0 : 4;
+        this.player.move(speed, 0, direction);
+        break;
+      case "down":
+        speed = this.impassableTerrain(direction, ctx) ? 0 : 4;
+        this.player.move(0, speed, direction);
+        break;
+      case "left":
+        speed = this.impassableTerrain(direction, ctx) ? 0 : -4;
+        this.player.move(speed, 0, direction);
+        break;
+    }
   }
 }
 

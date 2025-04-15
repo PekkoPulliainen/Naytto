@@ -1,24 +1,50 @@
 import { Sword } from "./sword.js";
 
 class Player {
-  constructor(ctx) {
+  constructor(ctx, collisionCtx) {
     this.ctx = ctx;
+    this.collisionCtx = collisionCtx;
     this.sprite = new Image();
     this.sprite.src = "./dist/images/player/link.png";
 
     this.beamSprite = new Image();
     this.beamSprite.src = "./dist/images/player/beams.png";
 
-    this.frameWidth = 48;
-    this.frameHeight = 48;
+    this.pos = {
+      x: 336,
+      y: 432,
+      width: 48,
+      height: 48,
+      direction: 0,
+      direction2: 0,
+    };
 
-    this.x = 400;
-    this.y = 400;
-    this.speed = 3;
+    this.hitBox = {
+      x: this.pos.x + 12,
+      y: this.pos.y + 12,
+      width: 24,
+      height: 24,
+    };
+
+    this.traceBox = {
+      topLeft: [this.pos.x + 9, this.pos.y + 24],
+      topRight: [this.pos.x + 39, this.pos.y + 24],
+      bottomLeft: [this.pos.x + 9, this.pos.y + 45],
+      bottomRight: [this.pos.x + 39, this.pos.y + 45],
+    };
+
+    this.frames = {
+      run: 0,
+      attack: 0,
+      cooldown: 0,
+      invincibility: 0,
+      knockback: 0,
+    };
+
+    this.moving = false;
 
     this.frameX = 0;
     this.playerFrameX = 0;
-    this.direction = 0;
 
     this.lastToggle = 0;
     this.facing = "s"; // START FACING DOWN
@@ -31,7 +57,7 @@ class Player {
 
     this.hpCount = 6; // PLAYER HEALTH
 
-    this.sword = new Sword(ctx);
+    this.sword = new Sword(ctx, collisionCtx);
 
     window.addEventListener("keydown", (e) => this.handleKeyDown(e)); // KEYDOWN EVENT
     window.addEventListener("keyup", (e) => this.handleKeyUp(e)); // KEYUP EVENT
@@ -52,6 +78,32 @@ class Player {
         break;
       case "fullhp":
         return this.hpCount === 6;
+    }
+  }
+
+  clear() {
+    this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+  }
+
+  step() {
+    if (this.frames.knockback) this.frames.knockback--;
+    if (this.frames.invincibility) this.frames.invincibility--;
+  }
+
+  setDirection(direction) {
+    switch (direction) {
+      case "up":
+        this.pos.direction2 = 96;
+        break;
+      case "right":
+        this.pos.direction2 = 144;
+        break;
+      case "down":
+        this.pos.direction2 = 0;
+        break;
+      case "left":
+        this.pos.direction2 = 48;
+        break;
     }
   }
 
@@ -78,7 +130,7 @@ class Player {
       if (this.hP("fullhp") && this.sword.beamReady === true) {
         this.sword.beamReady = false;
         setTimeout(() => {
-          this.sword.launch(this.facing, this.x, this.y); // SWORD SHOOT
+          this.sword.launch(this.facing, this.pos.x, this.pos.y); // SWORD SHOOT
         }, 200);
         console.log("shoot");
         // FOR TESTING BOTH ATTACK METHODS
@@ -86,7 +138,7 @@ class Player {
       }
 
       this.attacking = true;
-      this.direction = 2; // FOR ATTACK ANIMATIONS CORRECT DIRECTION
+      this.pos.direction = 2; // FOR ATTACK ANIMATIONS CORRECT DIRECTION
       this.attackFrameTimer = performance.now();
       this.canAttack = false;
     } else {
@@ -101,40 +153,65 @@ class Player {
     this.keys[e.key.toLowerCase()] = false;
   }
 
+  getInput() {
+    if (this.keys["w"] || this.keys["arrowup"]) return "up";
+    if (this.keys["d"] || this.keys["arrowright"]) return "right";
+    if (this.keys["s"] || this.keys["arrowdown"]) return "down";
+    if (this.keys["a"] || this.keys["arrowleft"]) return "left";
+    return null; // No input detected
+  }
+
+  move(x, y, direction) {
+    if (this.attacking) {
+      this.moving = false;
+      return;
+    }
+    if (this.getInput() === null) this.moving = false;
+    if (this.hpCount <= 0) return;
+    if (this.frames.cooldown) return;
+    if (direction === "up") {
+      this.pos.y += y;
+      this.hitBox.y += y;
+      this.pos.x += x;
+      this.hitBox.x += x;
+      this.playerFrameX = 2;
+      this.facing = "w";
+      this.moving = true;
+    } else if (direction === "down") {
+      this.pos.y += y;
+      this.hitBox.y += y;
+      this.pos.x += x;
+      this.hitBox.x += x;
+      this.facing = "s";
+      this.playerFrameX = 0;
+      this.moving = true;
+    } else if (direction === "left") {
+      this.pos.x += x;
+      this.hitBox.x += x;
+      this.pos.y += y;
+      this.hitBox.y += y;
+      this.playerFrameX = 1;
+      this.facing = "a";
+      this.moving = true;
+    } else if (direction === "right") {
+      this.pos.x += x;
+      this.hitBox.x += x;
+      this.pos.y += y;
+      this.hitBox.y += y;
+      this.playerFrameX = 3;
+      this.facing = "d";
+      this.moving = true;
+    }
+    this.setDirection(direction);
+
+    (this.traceBox.topLeft[0] += x), (this.traceBox.topLeft[1] += y);
+    (this.traceBox.topRight[0] += x), (this.traceBox.topRight[1] += y);
+    (this.traceBox.bottomLeft[0] += x), (this.traceBox.bottomLeft[1] += y);
+    (this.traceBox.bottomRight[0] += x), (this.traceBox.bottomRight[1] += y);
+  }
+
   update(timestamp) {
     if (!this.alive) return;
-    let moving = false;
-
-    // MOVING
-    if (!this.attacking) {
-      if (this.keys["w"] || this.keys["arrowup"]) {
-        this.y -= this.speed;
-        this.playerFrameX = 2;
-        this.facing = "w";
-        moving = true;
-      } else if (this.keys["s"] || this.keys["arrowdown"]) {
-        this.facing = "s";
-        this.playerFrameX = 0;
-        this.y += this.speed;
-        moving = true;
-      } else if (this.keys["a"] || this.keys["arrowleft"]) {
-        this.x -= this.speed;
-        this.playerFrameX = 1;
-        this.facing = "a";
-        moving = true;
-      } else if (this.keys["d"] || this.keys["arrowright"]) {
-        this.x += this.speed;
-        this.playerFrameX = 3;
-        this.facing = "d";
-        moving = true;
-      }
-    }
-
-    // ANIMATION DIRECTION TOGGLE
-    if (moving && timestamp - this.lastToggle > 150) {
-      this.direction = this.direction === 0 ? 1 : 0;
-      this.lastToggle = timestamp;
-    }
 
     // ATTACK DURATION
     if (this.attacking && timestamp - this.attackFrameTimer >= 300) {
@@ -142,30 +219,38 @@ class Player {
       this.canAttack = true;
       console.log("Attack finished");
     }
-
     // Update sword state
     this.sword.update(timestamp, this.attacking);
 
-    if (!moving && !this.attacking) {
-      this.direction = 0;
+    // ANIMATION DIRECTION TOGGLE
+    if (this.moving && timestamp - this.lastToggle > 150) {
+      this.pos.direction = this.pos.direction === 0 ? 1 : 0;
+      this.lastToggle = timestamp;
+    }
+
+    if (!this.moving && !this.attacking) {
+      this.pos.direction = 0;
     }
   }
 
-  draw() {
-    this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-
-    this.sword.draw(this.x, this.y, this.frameWidth, this.frameHeight);
+  drawImage() {
+    this.sword.draw(
+      Math.round(this.pos.x),
+      Math.round(this.pos.y),
+      this.pos.width,
+      this.pos.height
+    );
 
     this.ctx.drawImage(
       this.sprite,
-      this.playerFrameX * this.frameWidth,
-      this.direction * this.frameHeight,
-      this.frameWidth,
-      this.frameHeight,
-      this.x,
-      this.y,
-      this.frameWidth,
-      this.frameHeight
+      this.playerFrameX * this.pos.width,
+      this.pos.direction * this.pos.height,
+      this.pos.width,
+      this.pos.height,
+      Math.round(this.pos.x), // Round to nearest integer
+      Math.round(this.pos.y), // Round to nearest integer
+      this.pos.width,
+      this.pos.height
     );
 
     if (this.sword.explosion) {
@@ -174,7 +259,12 @@ class Player {
   }
 
   drawBeam() {
-    this.sword.drawBeam(this.x, this.y, this.frameWidth, this.frameHeight);
+    this.sword.drawBeam(
+      Math.round(this.pos.x), // Round to nearest integer
+      Math.round(this.pos.y), // Round to nearest integer
+      this.pos.width,
+      this.pos.height
+    );
   }
 }
 

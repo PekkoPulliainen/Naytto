@@ -1,12 +1,18 @@
+import * as Util from "../util/util.js";
+import * as constants from "../util/constants.js";
+
 export class Sword {
-  constructor(ctx) {
+  constructor(ctx, collisionCtx) {
     this.ctx = ctx;
+    this.collisionCtx = collisionCtx;
     this.sprite = new Image();
     this.sprite.src = "./dist/images/player/link.png"; // Or sword-specific sprite
 
     this.beamSprite = new Image();
     this.beamSprite.src = "./dist/images/player/beams.png"; // Beam sprites
     this.beamColor = 1;
+    this.beamWidth = 24; // Adjust to match the beam sprite's width
+    this.beamHeight = 24; // Adjust to match the beam sprite's height
 
     this.explosionSprite = new Image();
     this.explosionSprite.src = "./dist/images/player/explosion.png";
@@ -21,7 +27,8 @@ export class Sword {
     this.beamCooldown = 0;
     this.beamColorCooldown = 0;
     this.explosion = false;
-    this.explosionTimer = 0;
+    this.spacing = 1;
+    this.spacingCooldown = 0;
     this.explosionWidth = 24;
     this.explosionHeight = 48;
 
@@ -30,7 +37,7 @@ export class Sword {
     this.flyX = 0;
     this.flyY = 0;
     this.flyDistance = 0;
-    this.maxDistance = 150; // DISTANCE FOR SWORD
+    this.maxDistance = 600; // DISTANCE FOR SWORD
     this.speed = 5.5;
 
     this.retracting = false;
@@ -99,6 +106,27 @@ export class Sword {
     // SWORD LAUNCHING
     if (this.launching) {
       const move = this.speed;
+
+      const hitboxPadding = 10;
+      const collisionPixel = Util.getMapPixel(
+        this.collisionCtx,
+        this.flyX + hitboxPadding, // X position of the beam
+        this.flyY + hitboxPadding, // Y position of the beam
+        this.beamWidth - hitboxPadding * 2, // Width of the beam
+        this.beamHeight - hitboxPadding * 2 // Height of the beam
+      );
+      const collisionValue = Util.sumArr(collisionPixel);
+
+      if (
+        collisionValue === constants.WALL ||
+        collisionValue === constants.WATER
+      ) {
+        console.log("Beam hit a collision target!");
+        this.explosion = true;
+        this.launching = false;
+        return;
+      }
+
       switch (this.beamFacing) {
         case "w":
           this.flyY -= move;
@@ -124,39 +152,78 @@ export class Sword {
     }
     if (this.explosion) {
       this.beamExplosion(this.flyX, this.flyY);
+      this.animateExplosion();
       this.updateExplosionColor();
     }
   }
 
   beamExplosion(flyX, flyY) {
-    console.log("explosian at x: " + this.flyX + " Y: " + this.flyY);
-    this.offsetX = flyX;
-    this.offsetY = flyY;
+    this.ctx.save();
 
-    this.explosionTimer++;
+    const explosions = [
+      { dx: -this.spacing, dy: -this.spacing, rotation: 0, flip: false }, // ↖ up-left
+      { dx: -this.spacing, dy: this.spacing, rotation: 180, flip: true }, // ↙ down-left
+      { dx: this.spacing, dy: this.spacing, rotation: 180, flip: false }, // ↘ down-right
+      { dx: this.spacing, dy: -this.spacing, rotation: 0, flip: true }, // ↗ up-right
+    ];
 
-    this.ctx.drawImage(
-      this.explosionSprite,
-      this.explosionColor * this.explosionWidth,
-      0,
-      this.explosionWidth,
-      this.explosionHeight,
-      this.offsetX,
-      this.offsetY,
-      this.explosionWidth,
-      this.explosionHeight
-    );
-    if (this.explosionTimer >= 100) {
-      this.explosion = false;
-      return;
+    for (const { dx, dy, rotation, flip } of explosions) {
+      const explosionOffsetX = flyX + dx;
+      const explosionOffsetY = flyY + dy;
+
+      this.ctx.save(); // Save the current state
+
+      // Translate to the center of the image before rotating
+      this.ctx.translate(
+        explosionOffsetX + this.explosionWidth / 2,
+        explosionOffsetY + this.explosionHeight / 2
+      );
+
+      // Rotate the canvas (convert degrees to radians)
+      this.ctx.rotate((rotation * Math.PI) / 180);
+
+      if (flip) {
+        this.ctx.scale(-1, 1);
+      }
+
+      // Draw image, adjusting so it rotates around its center
+      this.ctx.drawImage(
+        this.explosionSprite,
+        this.explosionColor * this.explosionWidth,
+        0,
+        this.explosionWidth,
+        this.explosionHeight,
+        -this.explosionWidth / 2,
+        -this.explosionHeight / 2,
+        this.explosionWidth + 8,
+        this.explosionHeight + 8
+      );
+
+      this.ctx.restore(); // Restore to previous state
     }
+
+    this.ctx.restore();
+  }
+
+  animateExplosion() {
+    if (this.explosionSpacingInterval) return;
+
+    this.explosionSpacingInterval = setInterval(() => {
+      this.spacing++;
+      this.spacingCooldown++;
+
+      if (this.spacingCooldown === 60) {
+        clearInterval(this.explosionSpacingInterval);
+        this.explosion = false;
+        this.explosionSpacingInterval = null;
+        this.spacingCooldown = 0;
+        this.spacing = 1;
+        return;
+      }
+    }, 8);
   }
 
   updateExplosionColor() {
-    if (this.explosionTimer < 10) {
-      console.log("Returning explosion 0");
-      return 0;
-    }
     this.explosionColorCooldownInterval = setInterval(() => {
       if (this.explosionColor > 2) this.explosionColor = 0;
       this.explosionColor++;
@@ -203,8 +270,8 @@ export class Sword {
         this.beamColor * frameHeight,
         frameWidth,
         frameHeight,
-        this.flyX,
-        this.flyY,
+        Math.round(this.flyX),
+        Math.round(this.flyY),
         frameWidth,
         frameHeight
       );
