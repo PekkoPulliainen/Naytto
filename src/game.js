@@ -7,11 +7,12 @@ import * as Util from "./util/util.js";
 
 class Game {
   constructor(hudCtx, spriteCtx, boardCtx, collisionCtx) {
-    this.hud = new Hud(hudCtx);
+    this.player = new Player(spriteCtx, collisionCtx);
+    this.hud = new Hud(hudCtx, this.player);
     this.spriteCtx = spriteCtx;
     this.board = new Board(boardCtx, collisionCtx);
     this.collisionCtx = collisionCtx;
-    this.player = new Player(spriteCtx, collisionCtx);
+
 
     this.scrolling = false;
     this.scrollQueue = 0;

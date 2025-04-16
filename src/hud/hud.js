@@ -3,12 +3,12 @@ import Player from "../player/player.js";
 
 
 class Hud {
-  constructor(ctx) {
+  constructor(ctx, player) {
     this.ctx = ctx;
 
     // PELAAJA
 
-    this.player = new Player();
+    this.player = player;
 
     this.menu = new Image();
     this.menu.src = "./dist/images/ui/menu.png"; // Menu image
@@ -23,11 +23,8 @@ class Hud {
     this.hearts = new Image();
     this.hearts.src = "./dist/images/items/hearts.png"; // Hearts image
 
-    this.hpCount = 6;
-
     // FOR TESTING
     this.player.hP("damage", 2);
-    this.player.hP("heal", 2);
     
     this.numbers = new Image();
     this.numbers.src = "./dist/images/ui/numbers.png"; // Numbers image

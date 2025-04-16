@@ -346,11 +346,11 @@ export class Sword {
         this.offsetX = this.swordX - this.originX;
         this.offsetY = this.swordY - this.originY;
 
-        // Start retracting after 700ms
+        // NOW MATCHES FOR AL "300MS"
         setTimeout(() => {
           this.retracting = true;
           this.retractProgress = 0;
-        }, 210);
+        }, 300);
       }
 
       this.ctx.drawImage(
