@@ -24,7 +24,6 @@ class Hud {
     this.hearts.src = "./dist/images/items/hearts.png"; // Hearts image
 
     // FOR TESTING
-    this.player.hP("damage", 2);
     
     this.numbers = new Image();
     this.numbers.src = "./dist/images/ui/numbers.png"; // Numbers image

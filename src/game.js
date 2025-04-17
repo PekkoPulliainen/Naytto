@@ -4,6 +4,7 @@ import Player from "./player/player.js";
 import Sword from "./player/sword.js";
 import * as constants from "./util/constants.js";
 import * as Util from "./util/util.js";
+import Monster from "./enemies/monster.js"; 
 
 class Game {
   constructor(hudCtx, spriteCtx, boardCtx, collisionCtx) {
@@ -12,6 +13,18 @@ class Game {
     this.spriteCtx = spriteCtx;
     this.board = new Board(boardCtx, collisionCtx);
     this.collisionCtx = collisionCtx;
+
+    // CREATE 3 MONSTERS FOR TESTING
+
+    // FIRST TWO NUMBERS ARE FOR THE SPRITE SHEET, FOR EXAMPLE 500 AND 400 IS FOR POSITION.
+    // NOW CAN CREATE EASILY TO RANDOMIZE THEIR POSITION AND SPRITE SHEET POSITION
+    this.monsters = [
+      new Monster(spriteCtx, this.player.sword, 0, 0, 500, 400), 
+      new Monster(spriteCtx, this.player.sword, 1, 1, 200, 450), 
+      new Monster(spriteCtx, this.player.sword, 2, 2, 200, 300), 
+    ];
+
+    this.monster = new Monster(spriteCtx);
 
 
     this.scrolling = false;
@@ -79,16 +92,23 @@ class Game {
   gameLoop(timestamp) {
     this.clear();
     this.step(this.collisionCtx);
-    this.draw();
+
     this.player.move(null, null, null);
-    this.player.update(timestamp); // Update the player
+    this.player.update(timestamp);
     this.player.drawImage();
+
+    // FOR MONSTERS
+    this.monsters.forEach((monster) => {
+      monster.killmonster(); // Check if the monster is hit
+      monster.drawImage(); // DRAW MONSTER
+    });
+
     if (this.player.sword.launching) {
-      this.player.drawBeam();
+        this.player.drawBeam();
     }
 
-    requestAnimationFrame((t) => this.gameLoop(t)); // Request the next animation frame
-  }
+    requestAnimationFrame((t) => this.gameLoop(t));
+}
 
   clear() {
     //this.clearUnits();
