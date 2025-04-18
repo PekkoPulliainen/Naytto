@@ -18,11 +18,7 @@ class Game {
 
     // FIRST TWO NUMBERS ARE FOR THE SPRITE SHEET, FOR EXAMPLE 500 AND 400 IS FOR POSITION.
     // NOW CAN CREATE EASILY TO RANDOMIZE THEIR POSITION AND SPRITE SHEET POSITION
-    this.monsters = [
-      new Monster(spriteCtx, this.player.sword, 0, 0, 500, 400), 
-      new Monster(spriteCtx, this.player.sword, 1, 1, 200, 450), 
-      new Monster(spriteCtx, this.player.sword, 2, 2, 200, 300), 
-    ];
+    this.monsters = [];
 
     this.monster = new Monster(spriteCtx);
 
@@ -214,16 +210,49 @@ class Game {
     }
   }
 
+  spawnMonsters() {
+    // Clear existing monsters
+    this.monsters = [];
+  
+    // RANGES FOR MONSTERS
+    const minX = 200;
+    const maxX = 500;
+    const minY = 200;
+    const maxY = 500;
+  
+    // NUMBER OF MONSTERS TO SPAWN
+    const numberOfMonsters = 5;
+  
+    // CREATE MONSTERS AT RANDOM POSITIONS
+    for (let i = 0; i < numberOfMonsters; i++) {
+      // Generate random positions within the defined range
+      const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
+      const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+  
+      // RANDOMIZE SPRITE SHEET POSITION FROM 0 TO 3
+      const spriteX = Math.floor(Math.random() * 3); 
+      const spriteY = Math.floor(Math.random() * 3);
+  
+      // Add the new monster to the monsters array
+      this.monsters.push(
+        new Monster(this.spriteCtx, this.player.sword, spriteX, spriteY, randomX, randomY)
+      );
+    }
+  
+    console.log("New monsters spawned:", this.monsters);
+  }
+
   checkBorder() {
-    // function detects when the player crosses the screen boundaries and prepares the game for a screen transition by enabling scrolling and setting the appropriate scroll distance. This ensures smooth transitions between different areas of the game world.
+    // function detects when the player crosses the screen boundaries and prepares the game for a screen transition
     if (
       this.player.pos.y < constants.BORDERTOP ||
       this.player.pos.y > constants.BORDERBOTTOM
     ) {
       this.scrolling = true;
       console.log("scrolling up/down");
-      //this.destroyUnits();
       this.scrollQueue = 528;
+      // SPAWN MONSTERS
+      this.spawnMonsters();
     }
     if (
       this.player.pos.x > constants.BORDERRIGHT ||
@@ -231,8 +260,9 @@ class Game {
     ) {
       this.scrolling = true;
       console.log("scrolling right/left");
-      //this.destroyUnits();
       this.scrollQueue = 768;
+      // SPAWN MONSTERS
+      this.spawnMonsters();
     }
   }
 
