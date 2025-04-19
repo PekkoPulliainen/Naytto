@@ -96,6 +96,7 @@ class Game {
     // FOR MONSTERS
     this.monsters.forEach((monster) => {
       monster.killmonster(); // Check if the monster is hit
+      monster.hitPlayer();
       monster.drawImage(); // DRAW MONSTER
     });
 
@@ -235,11 +236,12 @@ class Game {
   
       // Add the new monster to the monsters array
       this.monsters.push(
-        new Monster(this.spriteCtx, this.player.sword, spriteX, spriteY, randomX, randomY)
+        new Monster(this.spriteCtx, this.player.sword, this.player, spriteX, spriteY, randomX, randomY)
       );
     }
   
     console.log("New monsters spawned:", this.monsters);
+    console.log(this.player.pos.x, this.player.pos.y);
   }
 
   checkBorder() {
@@ -251,8 +253,14 @@ class Game {
       this.scrolling = true;
       console.log("scrolling up/down");
       this.scrollQueue = 528;
+
+      this.monsters = [];
+
       // SPAWN MONSTERS
-      this.spawnMonsters();
+      setTimeout(() => {
+        this.spawnMonsters();
+      }, 700);
+      
     }
     if (
       this.player.pos.x > constants.BORDERRIGHT ||
@@ -261,8 +269,12 @@ class Game {
       this.scrolling = true;
       console.log("scrolling right/left");
       this.scrollQueue = 768;
+
+      this.monsters = [];
       // SPAWN MONSTERS
-      this.spawnMonsters();
+      setTimeout(() => {
+        this.spawnMonsters();
+      }, 700);
     }
   }
 

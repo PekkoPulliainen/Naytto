@@ -22,7 +22,7 @@ class Hud {
 
     this.hearts = new Image();
     this.hearts.src = "./dist/images/items/hearts.png"; // Hearts image
-
+    
     // FOR TESTING
     
     this.numbers = new Image();
