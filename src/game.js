@@ -92,6 +92,7 @@ class Game {
     this.player.move(null, null, null);
     this.player.update(timestamp);
     this.player.drawImage();
+    this.hud.render(); // RENDER HUD
 
     // FOR MONSTERS
     this.monsters.forEach((monster) => {

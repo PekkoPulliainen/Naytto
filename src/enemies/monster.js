@@ -1,4 +1,5 @@
 import Player from "../player/player.js";
+import Hud from "../hud/hud.js";
 
 class Monster {
   // SPIRTEX, SPRITEY ARE FOR MONSTER SPRITE POSITION, X AND Y ARE FOR MONSTER POSITION ON THE MAP
@@ -7,6 +8,8 @@ class Monster {
     this.sword = sword;
     this.enemy = new Image();
     this.enemy.src = "./dist/images/units/overworld-enemies.png";
+
+    this.hud = new Hud(ctx, player); // Initialize the HUD with the player
 
     this.spawnEffect = new Image();
     this.spawnEffect.src = "./dist/images/effects.png";
@@ -34,6 +37,8 @@ class Monster {
     this.alive = true; // Track if the monster is alive
     this.showSpawnEffect = true;
     this.showDeathEffect = false; // Track if the death effect is being shown
+    this.hittime = 0;
+
     // TIMER FOR SPAWN EFFECT TO NORMAL MONSTER.
     setTimeout(() => {
       this.showSpawnEffect = false;
@@ -128,8 +133,47 @@ class Monster {
     }
   }
 
-  hitPlayer(){
+  hitPlayer() {
+    if (!this.alive) return;
     
+
+    // SO THAT THE MONSTER CAN HIT THE PLAYER ONLY ONCE IN 700MS.
+    const currentTime = Date.now(); // Get the current timestamp
+    if (currentTime - this.lastHitTime < 700) {
+      return;
+    }
+  
+    // Update the last hit time
+    this.lastHitTime = currentTime;
+  
+    const playerHitBox = {
+      x: this.player.pos.x,
+      y: this.player.pos.y,
+      width: this.player.pos.width,
+      height: this.player.pos.height,
+    };
+  
+    const monsterHitBox = {
+      x: this.pos.x,
+      y: this.pos.y,
+      width: this.pos.width,
+      height: this.pos.height,
+    };
+  
+    if (
+      playerHitBox.x < monsterHitBox.x + monsterHitBox.width &&
+      playerHitBox.x + playerHitBox.width > monsterHitBox.x &&
+      playerHitBox.y < monsterHitBox.y + monsterHitBox.height &&
+      playerHitBox.y + playerHitBox.height > monsterHitBox.y
+    ) {
+      // Reduce player's health by 2
+      this.player.hP("damage", 2);
+  
+      // Notify the HUD to update the health display
+      this.hud.updateHearts(this.player.hpCount);
+  
+      console.log("Player hit by monster! Current HP:", this.player.hpCount);
+    }
   }
 }
 
