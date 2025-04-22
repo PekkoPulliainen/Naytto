@@ -17,6 +17,12 @@ class Monster {
     this.deathEffect = new Image();
     this.deathEffect.src = "./dist/images/effects.png";
 
+    this.hurtSound = new Audio();
+    this.hurtSound.src = "./dist/sfx/link-hurt.wav";
+
+    this.hitEnemySound = new Audio();
+    this.hitEnemySound.src = "./dist/sfx/hit-enemy.wav";
+
     this.player = player;
 
     // POSITION FOR ENEMY
@@ -37,7 +43,7 @@ class Monster {
     this.alive = true; // Track if the monster is alive
     this.showSpawnEffect = true;
     this.showDeathEffect = false; // Track if the death effect is being shown
-    this.hittime = 0;
+    this.canHitPlayer = true;
 
     // TIMER FOR SPAWN EFFECT TO NORMAL MONSTER.
     setTimeout(() => {
@@ -123,7 +129,7 @@ class Monster {
     ) {
       this.alive = false; // Mark the monster as dead
       this.showDeathEffect = true; // Show the death effect
-
+      this.hitEnemySound.play();
       console.log("Monster killed!");
 
       // DEATH EFFECT = 100MS
@@ -135,16 +141,9 @@ class Monster {
 
   hitPlayer() {
     if (!this.alive) return;
-    
-
-    // SO THAT THE MONSTER CAN HIT THE PLAYER ONLY ONCE IN 700MS.
-    const currentTime = Date.now(); // Get the current timestamp
-    if (currentTime - this.lastHitTime < 700) {
-      return;
-    }
   
-    // Update the last hit time
-    this.lastHitTime = currentTime;
+    // Ensure the monster can only hit the player if allowed
+    if (!this.canHitPlayer) return;
   
     const playerHitBox = {
       x: this.player.pos.x,
@@ -166,13 +165,20 @@ class Monster {
       playerHitBox.y < monsterHitBox.y + monsterHitBox.height &&
       playerHitBox.y + playerHitBox.height > monsterHitBox.y
     ) {
-      // Reduce player's health by 2
+      // Reduce player's health by 2, 2= 1 heart
       this.player.hP("damage", 2);
+      this.hurtSound.play();
   
       // Notify the HUD to update the health display
       this.hud.updateHearts(this.player.hpCount);
   
       console.log("Player hit by monster! Current HP:", this.player.hpCount);
+  
+      // 500MS COOLDOWN
+      this.canHitPlayer = false;
+      setTimeout(() => {
+        this.canHitPlayer = true;
+      }, 500);
     }
   }
 }
