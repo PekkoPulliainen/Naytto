@@ -100,10 +100,11 @@ class Monster {
     }
   }
 
-  killmonster() {
+  killmonster(normalAttack = false) {
     // Check if the monster is alive
     if (!this.alive) return;
-
+    
+  
     // SWORD HITBOX FROM SWORD.js
     const swordHitBox = {
       x: this.sword.flyX || this.sword.swordX,
@@ -119,20 +120,24 @@ class Monster {
       width: this.pos.width,
       height: this.pos.height,
     };
-
-    // DETECT COLLISION
-    if (
-      swordHitBox.x < monsterHitBox.x + monsterHitBox.width &&
-      swordHitBox.x + swordHitBox.width > monsterHitBox.x &&
-      swordHitBox.y < monsterHitBox.y + monsterHitBox.height &&
-      swordHitBox.y + swordHitBox.height > monsterHitBox.y
-    ) {
+  
+    // DETECT COLLISION FOR BEAM OR NORMAL ATTACK
+    const collisionDetected = normalAttack
+      ? this.sword.swordX < monsterHitBox.x + monsterHitBox.width &&
+        this.sword.swordX + this.sword.beamWidth > monsterHitBox.x &&
+        this.sword.swordY < monsterHitBox.y + monsterHitBox.height &&
+        this.sword.swordY + this.sword.beamHeight > monsterHitBox.y
+      : swordHitBox.x < monsterHitBox.x + monsterHitBox.width &&
+        swordHitBox.x + swordHitBox.width > monsterHitBox.x &&
+        swordHitBox.y < monsterHitBox.y + monsterHitBox.height &&
+        swordHitBox.y + swordHitBox.height > monsterHitBox.y;
+  
+    if (collisionDetected) {
       this.alive = false; // Mark the monster as dead
       this.showDeathEffect = true; // Show the death effect
       this.hitEnemySound.play();
       console.log("Monster killed!");
 
-      // DEATH EFFECT = 100MS
       setTimeout(() => {
         this.showDeathEffect = false;
       }, 100);
@@ -167,7 +172,6 @@ class Monster {
     ) {
       // Reduce player's health by 2, 2= 1 heart
       this.player.hP("damage", 2);
-      this.hurtSound.play();
   
       // Notify the HUD to update the health display
       this.hud.updateHearts(this.player.hpCount);
@@ -178,7 +182,7 @@ class Monster {
       this.canHitPlayer = false;
       setTimeout(() => {
         this.canHitPlayer = true;
-      }, 500);
+      }, 1500);
     }
   }
 }

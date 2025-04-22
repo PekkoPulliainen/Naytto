@@ -96,7 +96,8 @@ class Game {
 
     // FOR MONSTERS
     this.monsters.forEach((monster) => {
-      monster.killmonster(); // Check if the monster is hit
+      monster.killmonster(true); // Check if the monster is hit
+      monster.killmonster(false);
       monster.hitPlayer();
       monster.drawImage(); // DRAW MONSTER
     });
@@ -234,7 +235,7 @@ class Game {
       const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
       const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
   
-      // RANDOMIZE SPRITE SHEET POSITION FROM 0 TO 3
+      // RANDOMIZE SPRITE SHEET POSITION
       const spriteX = Math.floor(Math.random() * 3); 
       const spriteY = Math.floor(Math.random() * 3);
   
