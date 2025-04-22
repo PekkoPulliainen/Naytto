@@ -350,7 +350,7 @@ export class Sword {
         setTimeout(() => {
           this.retracting = true;
           this.retractProgress = 0;
-        }, 300);
+        }, 210);
       }
 
       this.ctx.drawImage(

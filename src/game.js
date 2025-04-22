@@ -221,9 +221,12 @@ class Game {
     const maxX = 500;
     const minY = 200;
     const maxY = 500;
+
+    const minMonsters = 2;
+    const maxMonsters = 5;
   
     // NUMBER OF MONSTERS TO SPAWN
-    const numberOfMonsters = 5;
+    const numberOfMonsters = Math.floor(Math.random() * (maxMonsters - minMonsters + 1)) + minMonsters;
   
     // CREATE MONSTERS AT RANDOM POSITIONS
     for (let i = 0; i < numberOfMonsters; i++) {
