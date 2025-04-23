@@ -10,6 +10,9 @@ class Player {
     this.beamSprite = new Image();
     this.beamSprite.src = "./dist/images/player/beams.png";
 
+    this.hurtSound = new Audio();
+    this.hurtSound.src = "./dist/sfx/link-hurt.wav";
+
     this.pos = {
       x: 336,
       y: 432,
@@ -67,18 +70,20 @@ class Player {
   // HP FUNKTIO
 
   hP(i, number = 1) {
-    switch (i) {
-      case "damage":
-        this.hpCount = Math.max(0, this.hpCount - number);
-        break;
-      case "heal":
-        this.hpCount = Math.min(6, this.hpCount + number);
-        break;
-      case "set":
-        this.hpCount = Math.max(0, Math.min(6, number));
-        break;
-      case "fullhp":
-        return this.hpCount === this.maxHPCount;
+    if (i === "damage") {
+      if (this.frames.invincibility > 0) return; // Ignore damage if invincibility is active
+
+      this.hpCount = Math.max(0, this.hpCount - number); // Reduce health
+      this.hurtSound.play(); // Play hurt sound
+      this.frames.invincibility = 60; // invincibility cooldown
+
+      console.log("Player took damage! Current HP:", this.hpCount);
+    } else if (i === "heal") {
+      this.hpCount = Math.min(6, this.hpCount + number); // Heal health
+    } else if (i === "set") {
+      this.hpCount = Math.max(0, Math.min(6, number)); // Set health
+    } else if (i === "fullhp") {
+      return this.hpCount === this.maxHPCount; // Check if health is full
     }
   }
 
@@ -88,7 +93,7 @@ class Player {
 
   step() {
     if (this.frames.knockback) this.frames.knockback--;
-    if (this.frames.invincibility) this.frames.invincibility--;
+    if (this.frames.invincibility) this.frames.invincibility--; // TIMER
   }
 
   setDirection(direction) {
