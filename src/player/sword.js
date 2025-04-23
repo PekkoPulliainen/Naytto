@@ -32,6 +32,11 @@ export class Sword {
     this.explosionWidth = 24;
     this.explosionHeight = 48;
 
+    this.swordHitBoxX = 48;
+    this.swordHitBoxY = 48;
+    this.swordHitBoxWidth = 48;
+    this.swordHitBoxHeight = 48;
+
     this.facing = "s";
 
     this.flyX = 0;
@@ -335,21 +340,37 @@ export class Sword {
             this.swordY -= frameHeight - 10;
             this.swordX -= 3.5;
             this.frameX = 31;
+            this.swordHitBoxX = this.swordX + 10;
+            this.swordHitBoxY = this.swordY - 2;
+            this.swordHitBoxWidth = 24;
+            this.swordHitBoxHeight = 48;
             break;
           case "s":
             this.swordY += frameHeight - 12;
             this.swordX += 3;
             this.frameX = 29;
+            this.swordHitBoxX = this.swordX + 14;
+            this.swordHitBoxY = this.swordY + 6;
+            this.swordHitBoxWidth = 24;
+            this.swordHitBoxHeight = 48;
             break;
           case "a":
             this.swordX -= frameWidth - 12;
             this.swordY -= 1.5;
             this.frameX = 30;
+            this.swordHitBoxX = this.swordX;
+            this.swordHitBoxY = this.swordY + 15;
+            this.swordHitBoxWidth = 48;
+            this.swordHitBoxHeight = 24;
             break;
           case "d":
             this.swordX += frameWidth - 12;
             this.swordY -= 1.5;
             this.frameX = 32;
+            this.swordHitBoxX = this.swordX;
+            this.swordHitBoxY = this.swordY + 15;
+            this.swordHitBoxWidth = 48;
+            this.swordHitBoxHeight = 24;
             break;
         }
 

@@ -107,10 +107,10 @@ class Monster {
 
     // SWORD HITBOX FROM SWORD.js
     const swordHitBox = {
-      x: this.sword.flyX || this.sword.swordX,
-      y: this.sword.flyY || this.sword.swordY,
-      width: this.sword.beamWidth,
-      height: this.sword.beamHeight,
+      x: this.sword.flyX || this.sword.swordHitBoxX,
+      y: this.sword.flyY || this.sword.swordHitBoxY,
+      width: this.sword.swordHitBoxWidth,
+      height: this.sword.swordHitBoxHeight,
     };
 
     // HITBOX FOR MONSTER
@@ -131,6 +131,25 @@ class Monster {
         swordHitBox.x + swordHitBox.width > monsterHitBox.x &&
         swordHitBox.y < monsterHitBox.y + monsterHitBox.height &&
         swordHitBox.y + swordHitBox.height > monsterHitBox.y;
+
+    console.log(
+      "Sword X: " + this.sword.swordX + " Sword Y: " + this.sword.swordY
+    );
+    this.ctx.strokeStyle = "red";
+    this.ctx.strokeRect(
+      this.sword.swordHitBoxX,
+      this.sword.swordHitBoxY,
+      this.sword.swordHitBoxWidth,
+      this.sword.swordHitBoxHeight
+    );
+
+    this.ctx.strokeStyle = "blue";
+    this.ctx.strokeRect(
+      this.pos.x,
+      this.pos.y,
+      this.pos.width,
+      this.pos.height
+    );
 
     if (collisionDetected) {
       this.alive = false; // Mark the monster as dead

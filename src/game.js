@@ -259,7 +259,7 @@ class Game {
       Math.floor(Math.random() * (maxMonsters - minMonsters + 1)) + minMonsters;
 
     // CREATE MONSTERS AT RANDOM POSITIONS
-    for (let i = 0; i < this.trueMonstersSpawned; i++) {
+    for (let i = 0; i < numberOfMonsters; i++) {
       // Generate random positions within the defined range
       const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
       const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
