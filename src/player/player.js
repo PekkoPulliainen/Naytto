@@ -55,7 +55,8 @@ class Player {
     this.canAttack = true; // ALLOW ATTACKS
     this.spacePressed = false; // SPACE KEY PRESSED
 
-    this.hpCount = 6; // PLAYER HEALTH
+    this.maxHPCount = 3; // MAX HP
+    this.hpCount = 3; // PLAYER HEALTH
 
     this.sword = new Sword(ctx, collisionCtx);
 
@@ -77,7 +78,7 @@ class Player {
         this.hpCount = Math.max(0, Math.min(6, number));
         break;
       case "fullhp":
-        return this.hpCount === 6;
+        return this.hpCount === this.maxHPCount;
     }
   }
 
@@ -127,7 +128,10 @@ class Player {
       this.sword.startAttack(this.facing);
       console.log("normal");
 
-      if (this.hP("fullhp") && this.sword.beamReady === true) {
+      if (
+        (this.hP("fullhp") || this.hpCount + 0.5 === this.maxHPCount) &&
+        this.sword.beamReady === true
+      ) {
         this.sword.beamReady = false;
         setTimeout(() => {
           this.sword.launch(this.facing, this.pos.x, this.pos.y); // SWORD SHOOT

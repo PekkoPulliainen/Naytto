@@ -46,6 +46,8 @@ export class Sword {
 
     this.sound = new Audio("./dist/sfx/sword.wav");
     this.swordBeamAudio = new Audio("./dist/sfx/sword-beam.wav");
+
+    this.enemyDead = false;
   }
 
   startAttack(facing) {
@@ -154,6 +156,15 @@ export class Sword {
       this.beamExplosion(this.flyX, this.flyY);
       this.animateExplosion();
       this.updateExplosionColor();
+    }
+  }
+
+  enemyHit() {
+    if (this.launching) {
+      console.log("Beam has struck an enemy!");
+      this.explosion = true;
+      this.launching = false;
+      return;
     }
   }
 
@@ -346,11 +357,10 @@ export class Sword {
         this.offsetX = this.swordX - this.originX;
         this.offsetY = this.swordY - this.originY;
 
-        // NOW MATCHES FOR AL "300MS"
         setTimeout(() => {
           this.retracting = true;
           this.retractProgress = 0;
-        }, 300);
+        }, 210);
       }
 
       this.ctx.drawImage(

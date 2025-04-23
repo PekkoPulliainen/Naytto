@@ -43,11 +43,12 @@ class Monster {
     this.alive = true; // Track if the monster is alive
     this.showSpawnEffect = true;
     this.showDeathEffect = false; // Track if the death effect is being shown
-    this.canHitPlayer = true;
+    this.canHitPlayer = false;
 
     // TIMER FOR SPAWN EFFECT TO NORMAL MONSTER.
     setTimeout(() => {
       this.showSpawnEffect = false;
+      this.canHitPlayer = true;
     }, 700);
   }
 
@@ -57,7 +58,7 @@ class Monster {
       this.ctx.drawImage(
         // CALCULATED THE POSITIOn AS 432, 48*9.
         this.deathEffect,
-        432, 
+        432,
         0,
         48,
         48,
@@ -128,6 +129,7 @@ class Monster {
       swordHitBox.y + swordHitBox.height > monsterHitBox.y
     ) {
       this.alive = false; // Mark the monster as dead
+      this.sword.enemyHit();
       this.showDeathEffect = true; // Show the death effect
       this.hitEnemySound.play();
       console.log("Monster killed!");
@@ -141,24 +143,24 @@ class Monster {
 
   hitPlayer() {
     if (!this.alive) return;
-  
+
     // Ensure the monster can only hit the player if allowed
     if (!this.canHitPlayer) return;
-  
+
     const playerHitBox = {
       x: this.player.pos.x,
       y: this.player.pos.y,
       width: this.player.pos.width,
       height: this.player.pos.height,
     };
-  
+
     const monsterHitBox = {
       x: this.pos.x,
       y: this.pos.y,
       width: this.pos.width,
       height: this.pos.height,
     };
-  
+
     if (
       playerHitBox.x < monsterHitBox.x + monsterHitBox.width &&
       playerHitBox.x + playerHitBox.width > monsterHitBox.x &&
@@ -166,22 +168,21 @@ class Monster {
       playerHitBox.y + playerHitBox.height > monsterHitBox.y
     ) {
       // Reduce player's health by 2, 2= 1 heart
-      this.player.hP("damage", 2);
+      this.player.hP("damage", 0.5); // Call the player's method to reduce health
       this.hurtSound.play();
-  
+
       // Notify the HUD to update the health display
-      this.hud.updateHearts(this.player.hpCount);
-  
+      this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
+
       console.log("Player hit by monster! Current HP:", this.player.hpCount);
-  
+
       // 500MS COOLDOWN
       this.canHitPlayer = false;
       setTimeout(() => {
         this.canHitPlayer = true;
-      }, 500);
+      }, 1000);
     }
   }
 }
 
 export default Monster;
-  
