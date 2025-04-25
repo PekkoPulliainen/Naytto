@@ -4,7 +4,7 @@ import Player from "./player/player.js";
 import Sword from "./player/sword.js";
 import * as constants from "./util/constants.js";
 import * as Util from "./util/util.js";
-import Monster from "./enemies/monster.js"; 
+import Monster from "./enemies/monster.js";
 
 class Game {
   constructor(hudCtx, spriteCtx, boardCtx, collisionCtx) {
@@ -18,13 +18,20 @@ class Game {
 
     // FIRST TWO NUMBERS ARE FOR THE SPRITE SHEET, FOR EXAMPLE 500 AND 400 IS FOR POSITION.
     // NOW CAN CREATE EASILY TO RANDOMIZE THEIR POSITION AND SPRITE SHEET POSITION
+    this.safeZone = true;
+    this.safePositions = [
+      { x: 7, y: 7 },
+      { x: 0, y: 0 },
+    ];
+
     this.monsters = [];
 
     this.monster = new Monster(spriteCtx);
 
-
     this.scrolling = false;
     this.scrollQueue = 0;
+
+    this.lastTime = performance.now();
 
     this.units = [];
     this.grid = null;
@@ -85,7 +92,12 @@ class Game {
     requestAnimationFrame((timestamp) => this.gameLoop(timestamp)); // Start the game loop
   }
 
-  gameLoop(timestamp) {
+  gameLoop(timestamp, currentTime) {
+    const delta = (currentTime - this.lastTime) / 1000;
+    this.lastTime = currentTime;
+
+    const cappedDelta = Math.min(delta, 0.066);
+
     this.clear();
     this.step(this.collisionCtx);
 
@@ -100,14 +112,15 @@ class Game {
       monster.killmonster(false);
       monster.hitPlayer();
       monster.drawImage(); // DRAW MONSTER
+      monster.monsterMovement();
     });
 
     if (this.player.sword.launching) {
-        this.player.drawBeam();
+      this.player.drawBeam();
     }
 
     requestAnimationFrame((t) => this.gameLoop(t));
-}
+  }
 
   clear() {
     //this.clearUnits();
@@ -185,7 +198,8 @@ class Game {
   scroll(collisionCtx) {
     if (!this.scrolling) return;
     if (this.scrollQueue <= 0) {
-      this.hud.updateMinimap(this.board.getMapPos());
+      this.hud.updateMapPos(this.board.getMapPos());
+      this.safeZoneCheck(this.board.getMapPos());
       this.scrolling = false;
       this.board.drawCollisionMap(collisionCtx);
       this.scanGrid(collisionCtx);
@@ -213,10 +227,25 @@ class Game {
     }
   }
 
+  safeZoneCheck(mapPos) {
+    const isSafe = this.safePositions.some(
+      (pos) => mapPos.x === pos.x && mapPos.y === pos.y
+    );
+    if (isSafe) {
+      this.safeZone = true;
+      return;
+    } else {
+      this.safeZone = false;
+      this.monsters = [];
+      // SPAWN MONSTERS
+      this.spawnMonsters();
+    }
+  }
+
   spawnMonsters() {
     // Clear existing monsters
     this.monsters = [];
-  
+
     // RANGES FOR MONSTERS
     const minX = 200;
     const maxX = 500;
@@ -225,26 +254,34 @@ class Game {
 
     const minMonsters = 2;
     const maxMonsters = 5;
-  
+
     // NUMBER OF MONSTERS TO SPAWN
-    const numberOfMonsters = Math.floor(Math.random() * (maxMonsters - minMonsters + 1)) + minMonsters;
-  
+    const numberOfMonsters =
+      Math.floor(Math.random() * (maxMonsters - minMonsters + 1)) + minMonsters;
+
     // CREATE MONSTERS AT RANDOM POSITIONS
     for (let i = 0; i < numberOfMonsters; i++) {
       // Generate random positions within the defined range
       const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
       const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
-  
+
       // RANDOMIZE SPRITE SHEET POSITION
-      const spriteX = Math.floor(Math.random() * 3); 
+      const spriteX = Math.floor(Math.random() * 3);
       const spriteY = Math.floor(Math.random() * 3);
-  
+
       // Add the new monster to the monsters array
       this.monsters.push(
-        new Monster(this.spriteCtx, this.player.sword, this.player, spriteX, spriteY, randomX, randomY)
+        new Monster(
+          this.spriteCtx,
+          this.player.sword,
+          this.player,
+          spriteX,
+          spriteY,
+          randomX,
+          randomY
+        )
       );
     }
-  
     console.log("New monsters spawned:", this.monsters);
     console.log(this.player.pos.x, this.player.pos.y);
   }
@@ -256,30 +293,16 @@ class Game {
       this.player.pos.y > constants.BORDERBOTTOM
     ) {
       this.scrolling = true;
-      console.log("scrolling up/down");
       this.scrollQueue = 528;
-
       this.monsters = [];
-
-      // SPAWN MONSTERS
-      setTimeout(() => {
-        this.spawnMonsters();
-      }, 700);
-      
     }
     if (
       this.player.pos.x > constants.BORDERRIGHT ||
       this.player.pos.x < constants.BORDERLEFT
     ) {
       this.scrolling = true;
-      console.log("scrolling right/left");
       this.scrollQueue = 768;
-
       this.monsters = [];
-      // SPAWN MONSTERS
-      setTimeout(() => {
-        this.spawnMonsters();
-      }, 700);
     }
   }
 
@@ -351,7 +374,6 @@ class Game {
     if (this.scrolling) return;
     if (!this.alive) return;
     let direction = this.player.getInput();
-    console.log("direction: " + direction);
     let speed = null;
     switch (direction) {
       case "up":

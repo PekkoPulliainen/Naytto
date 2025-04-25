@@ -43,11 +43,12 @@ class Monster {
     this.alive = true; // Track if the monster is alive
     this.showSpawnEffect = true;
     this.showDeathEffect = false; // Track if the death effect is being shown
-    this.canHitPlayer = true;
+    this.canHitPlayer = false;
 
     // TIMER FOR SPAWN EFFECT TO NORMAL MONSTER.
     setTimeout(() => {
       this.showSpawnEffect = false;
+      this.canHitPlayer = true;
     }, 700);
   }
 
@@ -57,7 +58,7 @@ class Monster {
       this.ctx.drawImage(
         // CALCULATED THE POSITIOn AS 432, 48*9.
         this.deathEffect,
-        432, 
+        432,
         0,
         48,
         48,
@@ -100,17 +101,50 @@ class Monster {
     }
   }
 
+  // VIHUJEN LIIKKEELLE.
+  monsterMovement() {
+    if (!this.alive) return; // Don't move if the monster is dead
+  
+    const speed = 1; // Speed of movement
+  
+    if (!this.movementInterval) {
+      this.randomDirection = Math.floor(Math.random() * 4);
+  
+      this.movementInterval = setInterval(() => {
+        this.randomDirection = Math.floor(Math.random() * 4);
+      }, 1000);
+    }
+    // Move the monster based on the current direction
+    switch (this.randomDirection) {
+      case 0:
+        this.pos.y -= speed; // Move up
+        this.sprite.x = 96;
+        break;
+      case 1:
+        this.pos.y += speed; // Move down
+        this.sprite.x = 0;
+        break;
+      case 2:
+        this.pos.x -= speed; // Move left
+        this.sprite.x = 48;
+        break;
+      case 3:
+        this.pos.x += speed; // Move right
+        this.sprite.x = 144;
+        break;
+    }
+  }
+
   killmonster(normalAttack = false) {
     // Check if the monster is alive
     if (!this.alive) return;
-    
-  
+
     // SWORD HITBOX FROM SWORD.js
     const swordHitBox = {
-      x: this.sword.flyX || this.sword.swordX,
-      y: this.sword.flyY || this.sword.swordY,
-      width: this.sword.beamWidth,
-      height: this.sword.beamHeight,
+      x: this.sword.flyX || this.sword.swordHitBoxX,
+      y: this.sword.flyY || this.sword.swordHitBoxY,
+      width: this.sword.swordHitBoxWidth,
+      height: this.sword.swordHitBoxHeight,
     };
 
     // HITBOX FOR MONSTER
@@ -120,7 +154,7 @@ class Monster {
       width: this.pos.width,
       height: this.pos.height,
     };
-  
+
     // DETECT COLLISION FOR BEAM OR NORMAL ATTACK
     const collisionDetected = normalAttack
       ? this.sword.swordX < monsterHitBox.x + monsterHitBox.width &&
@@ -131,9 +165,29 @@ class Monster {
         swordHitBox.x + swordHitBox.width > monsterHitBox.x &&
         swordHitBox.y < monsterHitBox.y + monsterHitBox.height &&
         swordHitBox.y + swordHitBox.height > monsterHitBox.y;
-  
+
+    console.log(
+      "Sword X: " + this.sword.swordX + " Sword Y: " + this.sword.swordY
+    );
+    this.ctx.strokeStyle = "red";
+    this.ctx.strokeRect(
+      this.sword.swordHitBoxX,
+      this.sword.swordHitBoxY,
+      this.sword.swordHitBoxWidth,
+      this.sword.swordHitBoxHeight
+    );
+
+    this.ctx.strokeStyle = "blue";
+    this.ctx.strokeRect(
+      this.pos.x,
+      this.pos.y,
+      this.pos.width,
+      this.pos.height
+    );
+
     if (collisionDetected) {
       this.alive = false; // Mark the monster as dead
+      this.sword.enemyHit();
       this.showDeathEffect = true; // Show the death effect
       this.hitEnemySound.play();
       console.log("Monster killed!");
@@ -146,24 +200,24 @@ class Monster {
 
   hitPlayer() {
     if (!this.alive) return;
-  
+
     // Ensure the monster can only hit the player if allowed
     if (!this.canHitPlayer) return;
-  
+
     const playerHitBox = {
       x: this.player.pos.x,
       y: this.player.pos.y,
       width: this.player.pos.width,
       height: this.player.pos.height,
     };
-  
+
     const monsterHitBox = {
       x: this.pos.x,
       y: this.pos.y,
       width: this.pos.width,
       height: this.pos.height,
     };
-  
+
     if (
       playerHitBox.x < monsterHitBox.x + monsterHitBox.width &&
       playerHitBox.x + playerHitBox.width > monsterHitBox.x &&
@@ -171,13 +225,14 @@ class Monster {
       playerHitBox.y + playerHitBox.height > monsterHitBox.y
     ) {
       // Reduce player's health by 2, 2= 1 heart
-      this.player.hP("damage", 2);
-  
+      this.player.hP("damage", 0.5); // Call the player's method to reduce health
+      this.hurtSound.play();
+
       // Notify the HUD to update the health display
-      this.hud.updateHearts(this.player.hpCount);
-  
+      this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
+
       console.log("Player hit by monster! Current HP:", this.player.hpCount);
-  
+
       // 500MS COOLDOWN
       this.canHitPlayer = false;
       setTimeout(() => {

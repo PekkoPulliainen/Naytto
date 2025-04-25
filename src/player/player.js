@@ -58,7 +58,8 @@ class Player {
     this.canAttack = true; // ALLOW ATTACKS
     this.spacePressed = false; // SPACE KEY PRESSED
 
-    this.hpCount = 6; // PLAYER HEALTH
+    this.maxHPCount = 3; // MAX HP
+    this.hpCount = 3; // PLAYER HEALTH
 
     this.sword = new Sword(ctx, collisionCtx);
 
@@ -71,18 +72,18 @@ class Player {
   hP(i, number = 1) {
     if (i === "damage") {
       if (this.frames.invincibility > 0) return; // Ignore damage if invincibility is active
-  
+
       this.hpCount = Math.max(0, this.hpCount - number); // Reduce health
       this.hurtSound.play(); // Play hurt sound
       this.frames.invincibility = 60; // invincibility cooldown
-  
+
       console.log("Player took damage! Current HP:", this.hpCount);
     } else if (i === "heal") {
       this.hpCount = Math.min(6, this.hpCount + number); // Heal health
     } else if (i === "set") {
       this.hpCount = Math.max(0, Math.min(6, number)); // Set health
     } else if (i === "fullhp") {
-      return this.hpCount === 6; // Check if health is full
+      return this.hpCount === this.maxHPCount; // Check if health is full
     }
   }
 
@@ -132,7 +133,10 @@ class Player {
       this.sword.startAttack(this.facing);
       console.log("normal");
 
-      if (this.hP("fullhp") && this.sword.beamReady === true) {
+      if (
+        (this.hP("fullhp") || this.hpCount + 0.5 === this.maxHPCount) &&
+        this.sword.beamReady === true
+      ) {
         this.sword.beamReady = false;
         setTimeout(() => {
           this.sword.launch(this.facing, this.pos.x, this.pos.y); // SWORD SHOOT

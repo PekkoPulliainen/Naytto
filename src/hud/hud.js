@@ -1,7 +1,6 @@
 import * as Util from "../util/util.js";
 import Player from "../player/player.js";
 
-
 class Hud {
   constructor(ctx, player) {
     this.ctx = ctx;
@@ -13,6 +12,7 @@ class Hud {
     this.menu = new Image();
     this.menu.src = "./dist/images/ui/menu.png"; // Menu image
     this.hudPosition = { x: 0, y: 0 }; // Position of the HUD on the canvas
+    this.mapPosition = { x: 7, y: 7 };
 
     this.primaryItems = new Image();
     this.primaryItems.src = "./dist/images/items/primaryItems.png"; // Primary items image
@@ -22,9 +22,9 @@ class Hud {
 
     this.hearts = new Image();
     this.hearts.src = "./dist/images/items/hearts.png"; // Hearts image
-    
+
     // FOR TESTING
-    
+
     this.numbers = new Image();
     this.numbers.src = "./dist/images/ui/numbers.png"; // Numbers image
 
@@ -53,22 +53,22 @@ class Hud {
       768,
       696
     );
-    this.updateHearts(this.player.hpCount); // Update hearts with a placeholder value
-    this.updateMinimap({ x: 7, y: 7 });
-    this.updateMoney(99);
+    this.updateHearts(this.player.hpCount, this.player.maxHPCount); // Update hearts with a placeholder value
+    this.updateMinimap(this.mapPosition);
+    this.updateMoney(1);
     this.updateKeys(0);
     this.updateBombs(0);
     this.updatePrimary(0);
     this.updateSecondary(0);
   }
-  updateHearts(hpCount) {
+  updateHearts(hpCount, maxHPCount) {
     this.ctx.fillStyle = "black";
     this.ctx.fillRect(528, 96, 192, 48);
 
-    for (let i = 0; i < this.player.hpCount / 2; i++) {
+    for (let i = 0; i < maxHPCount; i++) {
       this.ctx.drawImage(
         this.hearts,
-        i < hpCount ? 24 : 72,
+        i < hpCount - 0.5 ? 24 : i < hpCount ? 48 : 72,
         0,
         24,
         24,
@@ -80,11 +80,18 @@ class Hud {
     }
   }
 
-  updateMinimap(mapPos) {
+  updateMapPos(position) {
+    this.mapPosition = position;
+    return;
+  }
+
+  updateMinimap(mapPosition) {
     this.ctx.fillStyle = "black";
     this.ctx.fillRect(48, 24, 192, 48);
     this.ctx.fillStyle = "gray";
     this.ctx.fillRect(48, 48, 192, 96);
+    this.ctx.fillStyle = "green";
+    this.ctx.fillRect(51 + mapPosition.x * 12, 48 + mapPosition.y * 12, 9, 9);
   }
 
   updateMoney(money) {
