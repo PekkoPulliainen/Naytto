@@ -308,7 +308,8 @@ class Game {
 
   enterDungeon() {
     console.log("ENTERING DUNGEON");
-  }
+    this.board.changeMap(); // Switch to the cave map and clear the collision map
+}
 
   checkIfBarrier(pixel1, pixel2) {
     let pixel1value = Util.sumArr(pixel1);
