@@ -10,6 +10,8 @@ export const BORDERBOTTOM = 648;
 export const WALL = 765;
 export const WATER = 503;
 
+export const DUNGEON = 506;
+
 // Screen scroll distance
 export const VIEWWIDTH = 768;
 export const VIEWHEIGHT = 528;

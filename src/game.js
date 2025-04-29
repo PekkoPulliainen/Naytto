@@ -306,6 +306,10 @@ class Game {
     }
   }
 
+  enterDungeon() {
+    console.log("ENTERING DUNGEON");
+  }
+
   checkIfBarrier(pixel1, pixel2) {
     let pixel1value = Util.sumArr(pixel1);
     let pixel2value = Util.sumArr(pixel2);
@@ -314,6 +318,10 @@ class Game {
     }
     if (pixel2value === constants.WALL || pixel2value === constants.WATER) {
       return true;
+    }
+    if (pixel1value === constants.DUNGEON || pixel2value === constants.DUNGEON) {
+      console.log("DUNGEON");
+      this.enterDungeon();
     }
     return false;
   }
