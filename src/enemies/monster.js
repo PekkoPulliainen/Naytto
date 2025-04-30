@@ -1,5 +1,6 @@
 import Player from "../player/player.js";
 import Hud from "../hud/hud.js";
+import Sword from "../player/sword.js";
 
 class Monster {
   // SPIRTEX, SPRITEY ARE FOR MONSTER SPRITE POSITION, X AND Y ARE FOR MONSTER POSITION ON THE MAP
@@ -230,7 +231,7 @@ class Monster {
 
       // Notify the HUD to update the health display
       this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
-
+      this.sword.superSword();
       console.log("Player hit by monster! Current HP:", this.player.hpCount);
 
       // 500MS COOLDOWN

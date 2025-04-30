@@ -53,7 +53,19 @@ export class Sword {
     this.swordBeamAudio = new Audio("./dist/sfx/sword-beam.wav");
 
     this.enemyDead = false;
+
+    this.damage = 1;
   }
+
+
+  // WHEN CALLED CHANGES THE SPRITE TO OTHER SWORD, NOW ON THE THIRD ROW OF LINK.png.
+
+  // FOR TESTING ADDED IN MONSTER.JS WHEN TAKING DAMAGE CALLED superSword() FUNCTION.
+  superSword() {
+    this.damage *= 2;
+    this.spriteRow = 2;
+    console.log("Super Sword");
+}
 
   startAttack(facing) {
     this.attacking = true;
@@ -305,7 +317,7 @@ export class Sword {
     this.ctx.drawImage(
       this.sprite,
       this.frameX * frameWidth,
-      0,
+      (this.spriteRow || 0) * frameHeight,
       frameWidth,
       frameHeight,
       currentX + 1.5,
@@ -328,79 +340,79 @@ export class Sword {
 
   draw(playerX, playerY, frameWidth, frameHeight) {
     if (this.attacking && !this.retracting) {
-      if (!this.swordX && !this.swordY) {
-        this.originX = playerX;
-        this.originY = playerY;
+        if (!this.swordX && !this.swordY) {
+            this.originX = playerX;
+            this.originY = playerY;
 
-        this.swordX = playerX;
-        this.swordY = playerY;
+            this.swordX = playerX;
+            this.swordY = playerY;
 
-        switch (this.facing) {
-          case "w":
-            this.swordY -= frameHeight - 10;
-            this.swordX -= 3.5;
-            this.frameX = 31;
-            this.swordHitBoxX = this.swordX + 10;
-            this.swordHitBoxY = this.swordY - 2;
-            this.swordHitBoxWidth = 24;
-            this.swordHitBoxHeight = 48;
-            break;
-          case "s":
-            this.swordY += frameHeight - 12;
-            this.swordX += 3;
-            this.frameX = 29;
-            this.swordHitBoxX = this.swordX + 14;
-            this.swordHitBoxY = this.swordY + 6;
-            this.swordHitBoxWidth = 24;
-            this.swordHitBoxHeight = 48;
-            break;
-          case "a":
-            this.swordX -= frameWidth - 12;
-            this.swordY -= 1.5;
-            this.frameX = 30;
-            this.swordHitBoxX = this.swordX;
-            this.swordHitBoxY = this.swordY + 15;
-            this.swordHitBoxWidth = 48;
-            this.swordHitBoxHeight = 24;
-            break;
-          case "d":
-            this.swordX += frameWidth - 12;
-            this.swordY -= 1.5;
-            this.frameX = 32;
-            this.swordHitBoxX = this.swordX;
-            this.swordHitBoxY = this.swordY + 15;
-            this.swordHitBoxWidth = 48;
-            this.swordHitBoxHeight = 24;
-            break;
+            switch (this.facing) {
+                case "w":
+                    this.swordY -= frameHeight - 10;
+                    this.swordX -= 3.5;
+                    this.frameX = 31;
+                    this.swordHitBoxX = this.swordX + 10;
+                    this.swordHitBoxY = this.swordY - 2;
+                    this.swordHitBoxWidth = 24;
+                    this.swordHitBoxHeight = 48;
+                    break;
+                case "s":
+                    this.swordY += frameHeight - 12;
+                    this.swordX += 3;
+                    this.frameX = 29;
+                    this.swordHitBoxX = this.swordX + 14;
+                    this.swordHitBoxY = this.swordY + 6;
+                    this.swordHitBoxWidth = 24;
+                    this.swordHitBoxHeight = 48;
+                    break;
+                case "a":
+                    this.swordX -= frameWidth - 12;
+                    this.swordY -= 1.5;
+                    this.frameX = 30;
+                    this.swordHitBoxX = this.swordX;
+                    this.swordHitBoxY = this.swordY + 15;
+                    this.swordHitBoxWidth = 48;
+                    this.swordHitBoxHeight = 24;
+                    break;
+                case "d":
+                    this.swordX += frameWidth - 12;
+                    this.swordY -= 1.5;
+                    this.frameX = 32;
+                    this.swordHitBoxX = this.swordX;
+                    this.swordHitBoxY = this.swordY + 15;
+                    this.swordHitBoxWidth = 48;
+                    this.swordHitBoxHeight = 24;
+                    break;
+            }
+
+            // Calculate offset from player to sword (needed for retraction)
+            this.offsetX = this.swordX - this.originX;
+            this.offsetY = this.swordY - this.originY;
+
+            setTimeout(() => {
+                this.retracting = true;
+                this.retractProgress = 0;
+            }, 210);
         }
-
-        // Calculate offset from player to sword (needed for retraction)
-        this.offsetX = this.swordX - this.originX;
-        this.offsetY = this.swordY - this.originY;
-
-        setTimeout(() => {
-          this.retracting = true;
-          this.retractProgress = 0;
-        }, 210);
-      }
-
-      this.ctx.drawImage(
-        this.sprite,
-        this.frameX * frameWidth,
-        0,
-        frameWidth,
-        frameHeight,
-        this.swordX,
-        this.swordY,
-        frameWidth,
-        frameHeight
-      );
+        
+        this.ctx.drawImage(
+            this.sprite,
+            this.frameX * frameWidth,
+            (this.spriteRow || 0) * frameHeight,
+            frameWidth,
+            frameHeight,
+            this.swordX,
+            this.swordY,
+            frameWidth,
+            frameHeight
+        );
     }
 
     if (this.retracting) {
-      this.drawRetractSword(frameWidth, frameHeight);
+        this.drawRetractSword(frameWidth, frameHeight);
     }
-  }
+}
 
   getFlyingFrameX() {
     switch (this.beamFacing) {
