@@ -26,6 +26,9 @@ class Monster {
 
     this.player = player;
 
+    this.shootingRock = new Image();
+    this.shootingRock.src = "./dist/images/units/ROCK.png";
+
     // POSITION FOR ENEMY
     this.pos = {
       x: x,
@@ -105,6 +108,7 @@ class Monster {
   // VIHUJEN LIIKKEELLE.
   monsterMovement() {
     if (!this.alive) return; // Don't move if the monster is dead
+    if (this.shootRock) return;
   
     const speed = 1; // Speed of movement
   
@@ -135,6 +139,67 @@ class Monster {
         break;
     }
   }
+
+  shootRocks() {
+    if (!this.alive) return;
+  
+    const rockSize = 16; // Size of the rock
+    let rockX = this.pos.x + this.pos.width / 2 - rockSize / 2; // Initial horizontal position
+    let rockY = this.pos.y + this.pos.height / 2 - rockSize / 2; // Initial vertical position
+    this.shootRock = true;
+    const rockSpeed = 2; // Speed of the rock
+    const rockDirection = this.randomDirection; // Direction of the rock
+
+    this.canshootRock = false;
+
+  
+      // Draw the rock at the updated position
+      this.ctx.drawImage(
+        this.shootingRock,
+        0,
+        0,
+        32,
+        32,
+        rockX,
+        rockY,
+        rockSize,
+        rockSize
+      );
+
+      // Stop moving the rock if it goes offscreen
+      if (
+        rockX < 0 ||
+        rockX > this.ctx.canvas.width ||
+        rockY < 0 ||
+        rockY > this.ctx.canvas.height
+      ) {
+        return;
+      }
+    };
+  
+    shootRocksCheckXY(){
+      
+
+      const onSameLineX = Math.abs(this.pos.x - this.player.pos.x) < this.pos.width;
+      const onSameLineY = Math.abs(this.pos.y - this.player.pos.y) < this.pos.height;
+
+      const monsterSeesPlayer = (
+        (this.randomDirection === 1 && this.player.pos.y > this.pos.y && onSameLineX) ||
+        (this.randomDirection === 0 && this.player.pos.y < this.pos.y && onSameLineX) ||
+        (this.randomDirection === 2 && this.player.pos.x < this.pos.x && onSameLineY) ||
+        (this.randomDirection === 3 && this.player.pos.x > this.pos.x && onSameLineY)
+      );
+
+      if (
+        monsterSeesPlayer
+      ) {
+        console.log("Monster and player are on same line");
+        this.shootRocks();
+      }
+      else {
+        this.shootRock = false;
+      }
+    }
 
   killmonster(normalAttack = false) {
     // Check if the monster is alive
@@ -167,9 +232,7 @@ class Monster {
         swordHitBox.y < monsterHitBox.y + monsterHitBox.height &&
         swordHitBox.y + swordHitBox.height > monsterHitBox.y;
 
-    console.log(
-      "Sword X: " + this.sword.swordX + " Sword Y: " + this.sword.swordY
-    );
+
     this.ctx.strokeStyle = "red";
     this.ctx.strokeRect(
       this.sword.swordHitBoxX,
@@ -192,7 +255,6 @@ class Monster {
       this.showDeathEffect = true; // Show the death effect
       this.hitEnemySound.play();
       console.log("Monster killed!");
-
       setTimeout(() => {
         this.showDeathEffect = false;
       }, 100);
