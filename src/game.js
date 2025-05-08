@@ -23,10 +23,22 @@ class Game {
       { x: 7, y: 7 },
       { x: 0, y: 0 },
     ];
-
+    this.dungeonPositions = [{ x: 0, y: 4056 }];
     this.monsters = [];
 
+    this.preDungeonMapPos = { x: 0, y: 0 };
+    this.preDungeonPlayerPos = { x: 0, y: 0 };
+
     this.monster = new Monster(spriteCtx);
+
+    this.dungeonFound = false;
+    this.dungeonActive = false;
+    this.dungeonAnimated = false;
+    this.dungeonCD = 0;
+    this.exitDungeon = false;
+
+    this.blackScreen = false;
+    this.blackScreenTimerRunning = false;
 
     this.scrolling = false;
     this.scrollQueue = 0;
@@ -106,6 +118,9 @@ class Game {
     this.player.drawImage();
     this.hud.render(); // RENDER HUD
 
+    if (this.dungeonCD > 0) this.dungeonCooldown();
+    if (this.animatingDungeon === true) this.dungeonAnimate();
+
     // FOR MONSTERS
     this.monsters.forEach((monster) => {
       monster.killmonster(true); // Check if the monster is hit
@@ -117,6 +132,25 @@ class Game {
 
     if (this.player.sword.launching) {
       this.player.drawBeam();
+    }
+
+    if (this.blackScreen) {
+      this.spriteCtx.fillStyle = "black";
+      this.spriteCtx.fillRect(
+        0,
+        0,
+        this.spriteCtx.canvas.width,
+        this.spriteCtx.canvas.height
+      );
+
+      if (!this.blackScreenTimerRunning) {
+        this.blackScreenTimerRunning = true;
+        setTimeout(() => {
+          this.blackScreen = false;
+          this.blackScreenTimerRunning = false;
+          this.player.moving = false;
+        }, 300);
+      }
     }
 
     requestAnimationFrame((t) => this.gameLoop(t));
@@ -131,6 +165,10 @@ class Game {
   step(collisionCtx) {
     this.checkBorder();
     this.scroll(collisionCtx);
+    if (!this.animatingDungeon && !this.dungeonActive) {
+      this.player.dungeonAnimated = false;
+      this.dungeonAnimated = false;
+    }
     this.processInput(collisionCtx);
     //this.stepUnits(collisionCtx)
     this.player.step();
@@ -195,7 +233,51 @@ class Game {
     }
   }
 
+  /* enterDungeon(collisionCtx) {
+    console.log("ENTERING DUNGEON");
+    this.board.changeMap(); // Switch to the cave map and clear the collision map
+    this.board.drawCaveCollisionMap(collisionCtx);
+    this.scanGrid(collisionCtx);
+  } */
+
   scroll(collisionCtx) {
+    if (
+      this.dungeonAnimated &&
+      !this.dungeonActive &&
+      this.dungeonCD === 0 &&
+      this.dungeonFound
+    ) {
+      this.preDungeonMapPos.x = this.board.pos.x;
+      this.preDungeonMapPos.y = this.board.pos.y;
+      this.preDungeonPlayerPos.x = this.player.pos.x;
+      this.preDungeonPlayerPos.y = this.player.pos.y;
+      console.log("pre dungeon map: " + this.preDungeonMapPos);
+      console.log("pre dungeon player: " + this.preDungeonPlayerPos);
+
+      this.board.pos.x = 0;
+      this.board.pos.y = 4056;
+      this.board.drawWorld();
+      this.board.drawCollisionMap(collisionCtx);
+      this.player.move(160, 360, "up");
+      this.scanGrid(collisionCtx);
+      this.dungeonFound = false;
+      this.dungeonActive = true;
+      this.dungeonAnimated = false;
+      this.player.dungeonAnimated = false;
+      this.dungeonCD = 40;
+    }
+    if (this.dungeonFound && this.dungeonActive) {
+      this.board.pos.x = this.preDungeonMapPos.x;
+      this.board.pos.y = this.preDungeonMapPos.y;
+      this.board.drawWorld();
+      this.board.drawCollisionMap(collisionCtx);
+      this.player.move(-160, -368, "down");
+      this.scanGrid(collisionCtx);
+      this.dungeonFound = false;
+      this.dungeonActive = false;
+      this.blackScreen = true;
+      this.dungeonCD = 200;
+    }
     if (!this.scrolling) return;
     if (this.scrollQueue <= 0) {
       this.hud.updateMapPos(this.board.getMapPos());
@@ -286,6 +368,35 @@ class Game {
     console.log(this.player.pos.x, this.player.pos.y);
   }
 
+  dungeonCooldown() {
+    console.log(this.dungeonCD);
+    if (this.dungeonCooldownInterval)
+      clearInterval(this.dungeonCooldownInterval);
+    this.dungeonCD--;
+
+    this.dungeonCooldownInterval = setInterval(() => {
+      if (this.dungeonCD === 0) {
+        clearInterval(this.dungeonCooldownInterval);
+        return;
+      }
+    }, 15);
+  }
+
+  dungeonAnimate() {
+    if (this.player.dungeonAnimated) {
+      this.animatingDungeon = false;
+      this.dungeonAnimated = true;
+      if (this.player.playerFrameX !== 0) {
+        this.blackScreen = true;
+      }
+      if (this.exitDungeon === true) this.exitDungeon = false;
+      return;
+    }
+    if (this.dungeonActive === false && !this.exitDungeon)
+      this.player.enterDungeon();
+    else this.player.exitDungeon();
+  }
+
   checkBorder() {
     // function detects when the player crosses the screen boundaries and prepares the game for a screen transition
     if (
@@ -306,12 +417,8 @@ class Game {
     }
   }
 
-  enterDungeon() {
-    console.log("ENTERING DUNGEON");
-    this.board.changeMap(); // Switch to the cave map and clear the collision map
-}
-
   checkIfBarrier(pixel1, pixel2) {
+    if (this.animatingDungeon) return;
     let pixel1value = Util.sumArr(pixel1);
     let pixel2value = Util.sumArr(pixel2);
     if (pixel1value === constants.WALL || pixel1value === constants.WATER) {
@@ -320,9 +427,18 @@ class Game {
     if (pixel2value === constants.WALL || pixel2value === constants.WATER) {
       return true;
     }
-    if (pixel1value === constants.DUNGEON || pixel2value === constants.DUNGEON) {
-      console.log("DUNGEON");
-      this.enterDungeon();
+    if (
+      pixel1value === constants.DUNGEON ||
+      pixel2value === constants.DUNGEON
+    ) {
+      if (this.dungeonCD === 0 && !this.dungeonActive) {
+        this.animatingDungeon = true;
+        this.dungeonFound = true;
+      } else if (this.dungeonCD === 0 && this.dungeonActive) {
+        this.exitDungeon = true;
+        this.animatingDungeon = true;
+        this.dungeonFound = true;
+      }
     }
     return false;
   }

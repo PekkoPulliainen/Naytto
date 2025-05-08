@@ -45,6 +45,12 @@ class Player {
     };
 
     this.moving = false;
+    this.canMove = true;
+
+    this.enteringDungeon = false;
+    this.exitingDungeon = false;
+    this.dungeonAnimated = false;
+    this.dungeonFadeProgress = 0;
 
     this.frameX = 0;
     this.playerFrameX = 0;
@@ -163,6 +169,7 @@ class Player {
   }
 
   getInput() {
+    if (!this.canMove) return;
     if (this.keys["w"] || this.keys["arrowup"]) return "up";
     if (this.keys["d"] || this.keys["arrowright"]) return "right";
     if (this.keys["s"] || this.keys["arrowdown"]) return "down";
@@ -240,6 +247,50 @@ class Player {
     if (!this.moving && !this.attacking) {
       this.pos.direction = 0;
     }
+    if (this.enteringDungeon) {
+      console.log("Dungeon fade progress:", this.dungeonFadeProgress);
+    }
+    // Entering
+    if (this.enteringDungeon && this.dungeonFadeProgress < 1) {
+      this.dungeonFadeProgress += 0.02; // ← slightly faster, tweak as needed
+      if (this.dungeonFadeProgress >= 1) {
+        this.dungeonFadeProgress = 1.3;
+        this.enteringDungeon = false;
+        this.canMove = true;
+        this.dungeonAnimated = true;
+        this.canAttack = true;
+      }
+    }
+
+    // Exiting
+    if (this.exitingDungeon && this.dungeonFadeProgress > 0) {
+      this.dungeonFadeProgress -= 0.02;
+      if (this.dungeonFadeProgress <= 0) {
+        this.dungeonFadeProgress = 0;
+        this.exitingDungeon = false;
+        this.canMove = true;
+        this.dungeonAnimated = true;
+        this.canAttack = true;
+      }
+    }
+  }
+
+  enterDungeon() {
+    console.log("enterDungeon called");
+    this.dungeonAnimated = false;
+    this.playerFrameX = 2;
+    this.canMove = false;
+    this.canAttack = false;
+    this.enteringDungeon = true;
+  }
+
+  exitDungeon() {
+    console.log("exitDungeon called");
+    this.dungeonAnimated = false;
+    this.playerFrameX = 0;
+    this.canMove = false;
+    this.canAttack = false;
+    this.exitingDungeon = true;
   }
 
   drawImage() {
@@ -250,20 +301,47 @@ class Player {
       this.pos.height
     );
 
-    this.ctx.drawImage(
-      this.sprite,
-      this.playerFrameX * this.pos.width,
-      this.pos.direction * this.pos.height,
-      this.pos.width,
-      this.pos.height,
-      Math.round(this.pos.x), // Round to nearest integer
-      Math.round(this.pos.y), // Round to nearest integer
-      this.pos.width,
-      this.pos.height
-    );
+    let drawHeight = this.pos.height;
+    let sourceOffsetY = 0;
+    let visualOffsetY = 0;
+
+    if (this.enteringDungeon || this.exitingDungeon) {
+      const progress = this.dungeonFadeProgress;
+
+      // Calculate how much of the sprite should be visible
+      drawHeight = this.pos.height * (1 - progress);
+      sourceOffsetY = 0;
+      visualOffsetY = this.pos.height * progress;
+
+      if (drawHeight > 0) {
+        this.ctx.drawImage(
+          this.sprite,
+          this.playerFrameX * this.pos.width,
+          this.pos.direction * this.pos.height + sourceOffsetY,
+          this.pos.width,
+          drawHeight,
+          Math.round(this.pos.x),
+          Math.round(this.pos.y + visualOffsetY),
+          this.pos.width,
+          drawHeight
+        );
+      }
+    } else {
+      this.ctx.drawImage(
+        this.sprite,
+        this.playerFrameX * this.pos.width,
+        this.pos.direction * this.pos.height,
+        this.pos.width,
+        this.pos.height,
+        Math.round(this.pos.x),
+        Math.round(this.pos.y),
+        this.pos.width,
+        this.pos.height
+      );
+    }
 
     if (this.sword.explosion) {
-      this.sword.beamExplosion(this.sword.flyX, this.sword.flyY);
+      this.sword.beamExplosion(this.sword.beamX, this.sword.beamY);
     }
   }
 

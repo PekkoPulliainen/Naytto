@@ -26,6 +26,10 @@ class Monster {
 
     this.player = player;
 
+    this.canMove = false;
+
+    this.monsterHPCount = 2;
+
     // POSITION FOR ENEMY
     this.pos = {
       x: x,
@@ -105,12 +109,13 @@ class Monster {
   // VIHUJEN LIIKKEELLE.
   monsterMovement() {
     if (!this.alive) return; // Don't move if the monster is dead
-  
+    if (!this.canMove) return;
+
     const speed = 1; // Speed of movement
-  
+
     if (!this.movementInterval) {
       this.randomDirection = Math.floor(Math.random() * 4);
-  
+
       this.movementInterval = setInterval(() => {
         this.randomDirection = Math.floor(Math.random() * 4);
       }, 1000);
@@ -142,10 +147,10 @@ class Monster {
 
     // SWORD HITBOX FROM SWORD.js
     const swordHitBox = {
-      x: this.sword.flyX || this.sword.swordHitBoxX,
-      y: this.sword.flyY || this.sword.swordHitBoxY,
-      width: this.sword.swordHitBoxWidth,
-      height: this.sword.swordHitBoxHeight,
+      x: this.sword.beamX || this.sword.swordHitBoxX,
+      y: this.sword.beamY || this.sword.swordHitBoxY,
+      width: this.sword.beamWidth || this.sword.swordHitBoxWidth,
+      height: this.sword.beamHeight || this.sword.swordHitBoxHeight,
     };
 
     // HITBOX FOR MONSTER
@@ -167,15 +172,21 @@ class Monster {
         swordHitBox.y < monsterHitBox.y + monsterHitBox.height &&
         swordHitBox.y + swordHitBox.height > monsterHitBox.y;
 
-    console.log(
-      "Sword X: " + this.sword.swordX + " Sword Y: " + this.sword.swordY
-    );
+    //console.log("Sword X: " + this.sword.swordX + " Sword Y: " + this.sword.swordY);
     this.ctx.strokeStyle = "red";
     this.ctx.strokeRect(
       this.sword.swordHitBoxX,
       this.sword.swordHitBoxY,
       this.sword.swordHitBoxWidth,
       this.sword.swordHitBoxHeight
+    );
+
+    this.ctx.strokeStyle = "green";
+    this.ctx.strokeRect(
+      this.sword.beamHitBoxX,
+      this.sword.beamHitBoxY,
+      this.sword.beamWidth,
+      this.sword.beamHeight
     );
 
     this.ctx.strokeStyle = "blue";
@@ -187,15 +198,21 @@ class Monster {
     );
 
     if (collisionDetected) {
-      this.alive = false; // Mark the monster as dead
+      this.monsterHPCount -= this.sword.swordDamage;
+      if (this.monsterHPCount === 0 || 0 > this.monsterHPCount) {
+        this.alive = false; // Mark the monster as dead
+        this.showDeathEffect = true; // Show the death effect
+        console.log("Monster killed!");
+      }
       this.sword.enemyHit();
-      this.showDeathEffect = true; // Show the death effect
       this.hitEnemySound.play();
-      console.log("Monster killed!");
+      console.log("Monster hit!");
 
-      setTimeout(() => {
-        this.showDeathEffect = false;
-      }, 100);
+      if (this.showDeathEffect) {
+        setTimeout(() => {
+          this.showDeathEffect = false;
+        }, 100);
+      }
     }
   }
 
