@@ -26,7 +26,8 @@ class Monster {
 
     this.player = player;
 
-    this.canMove = false;
+    this.canMove = true;
+    this.canShoot = true;
 
     this.monsterHPCount = 2;
 
@@ -117,7 +118,7 @@ class Monster {
 
     const speed = 1; // Speed of movement
 
-    if (!this.movementInterval) {
+    if (!this.movementInterval && this.canMove) {
       this.randomDirection = Math.floor(Math.random() * 4);
 
       this.movementInterval = setInterval(() => {
@@ -145,42 +146,101 @@ class Monster {
     }
   }
 
-  shootRocks() {
+shootRocks() {
     if (!this.alive) return;
 
     const rockSize = 16; // Size of the rock
-    let rockX = this.pos.x + this.pos.width / 2 - rockSize / 2; // Initial horizontal position
-    let rockY = this.pos.y + this.pos.height / 2 - rockSize / 2; // Initial vertical position
+    this.rockX = this.pos.x + this.pos.width / 2 - rockSize / 2; // Initial horizontal position
+    this.rockY = this.pos.y + this.pos.height / 2 - rockSize / 2; // Initial vertical position
+    this.rockSize = rockSize;
     this.shootRock = true;
-    const rockSpeed = 2; // Speed of the rock
-    const rockDirection = this.randomDirection; // Direction of the rock
+    this.canMove = false;
+    this.canShoot = false;
+    const rockSpeed = 4; // Speed of the rock
+    const rockDirection = this.randomDirection; // Direction SAME AS THE MONSTER
+    this.rockBlocked = false;
 
-    this.canshootRock = false;
+    setTimeout(() => {
+        this.canMove = true;
+        this.canShoot = true; // ALLOW SHOOTING AND MOVING AGAIN
+    }, 1500);
 
-    // Draw the rock at the updated position
-    this.ctx.drawImage(
-      this.shootingRock,
-      0,
-      0,
-      32,
-      32,
-      rockX,
-      rockY,
-      rockSize,
-      rockSize
-    );
+    const rockMovement = () => {
+        switch (rockDirection) {
+            case 0:
+                this.rockY -= rockSpeed;
+                break;
+            case 1:
+                this.rockY += rockSpeed;
+                break;
+            case 2:
+                this.rockX -= rockSpeed;
+                break;
+            case 3:
+                this.rockX += rockSpeed;
+                break;
+        }
 
-    // Stop moving the rock if it goes offscreen
-    if (
-      rockX < 0 ||
-      rockX > this.ctx.canvas.width ||
-      rockY < 0 ||
-      rockY > this.ctx.canvas.height
-    ) {
-      return;
-    }
-  }
+        const rockHitBox = {
+            x: this.rockX,
+            y: this.rockY,
+            width: rockSize,
+            height: rockSize,
+        };
 
+        const playerHitBox = {
+            x: this.player.pos.x,
+            y: this.player.pos.y,
+            width: this.player.pos.width,
+            height: this.player.pos.height,
+        };
+
+        // COLLISION FOR ROCK AND PLAYER
+        if (
+            rockHitBox.x < playerHitBox.x + playerHitBox.width &&
+            rockHitBox.x + rockHitBox.width > playerHitBox.x &&
+            rockHitBox.y < playerHitBox.y + playerHitBox.height &&
+            rockHitBox.y + rockHitBox.height > playerHitBox.y
+        ) {
+            if (!this.rockBlocked) {
+                console.log("Player hit by rock!");
+                this.player.hP("damage", 0.5);
+                this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
+            }
+            this.shootRock = false;
+            return;
+        }
+
+        // Stop moving the rock if it goes offscreen
+        if (
+            this.rockX < 0 ||
+            this.rockX > this.ctx.canvas.width ||
+            this.rockY < 0 ||
+            this.rockY > this.ctx.canvas.height
+        ) {
+            this.shootRock = false;
+            return;
+        }
+
+        this.ctx.drawImage(
+            this.shootingRock, // THE IMAGE
+            0,
+            0,
+            32,
+            32,
+            this.rockX,
+            this.rockY,
+            rockSize,
+            rockSize
+        );
+
+        if (this.shootRock) {
+            requestAnimationFrame(rockMovement); // MOVING THE ROCK
+        }
+    };
+
+    rockMovement();
+}
   shootRocksCheckXY() {
     const onSameLineX =
       Math.abs(this.pos.x - this.player.pos.x) < this.pos.width;
@@ -202,76 +262,48 @@ class Monster {
         onSameLineY);
 
     if (monsterSeesPlayer) {
-      console.log("Monster and player are on same line");
       this.shootRocks();
     } else {
       this.shootRock = false;
     }
   }
 
-  shootRocks() {
+blockRock() {
     if (!this.alive) return;
 
-    const rockSize = 16; // Size of the rock
-    let rockX = this.pos.x + this.pos.width / 2 - rockSize / 2; // Initial horizontal position
-    let rockY = this.pos.y + this.pos.height / 2 - rockSize / 2; // Initial vertical position
-    this.shootRock = true;
-    const rockSpeed = 2; // Speed of the rock
-    const rockDirection = this.randomDirection; // Direction of the rock
+    const facingMonster =
+        (this.randomDirection === 1 && this.player.facing === "w") ||
+        (this.randomDirection === 0 && this.player.facing === "s") ||
+        (this.randomDirection === 2 && this.player.facing === "d") ||
+        (this.randomDirection === 3 && this.player.facing === "a");
 
-    this.canshootRock = false;
+    const rockHitBox = {
+        x: this.rockX,
+        y: this.rockY,
+        width: this.rockSize,
+        height: this.rockSize,
+    };
 
-    // Draw the rock at the updated position
-    this.ctx.drawImage(
-      this.shootingRock,
-      0,
-      0,
-      32,
-      32,
-      rockX,
-      rockY,
-      rockSize,
-      rockSize
-    );
+    const playerHitBox = {
+        x: this.player.pos.x,
+        y: this.player.pos.y,
+        width: this.player.pos.width,
+        height: this.player.pos.height,
+    };
 
-    // Stop moving the rock if it goes offscreen
     if (
-      rockX < 0 ||
-      rockX > this.ctx.canvas.width ||
-      rockY < 0 ||
-      rockY > this.ctx.canvas.height
+        rockHitBox.x < playerHitBox.x + playerHitBox.width &&
+        rockHitBox.x + rockHitBox.width > playerHitBox.x &&
+        rockHitBox.y < playerHitBox.y + playerHitBox.height &&
+        rockHitBox.y + rockHitBox.height > playerHitBox.y &&
+        facingMonster
     ) {
-      return;
+        console.log("BLOCKED THE ROCK");
+        this.rockBlocked = true;
+        this.shootRock = false;
     }
-  }
+}
 
-  shootRocksCheckXY() {
-    const onSameLineX =
-      Math.abs(this.pos.x - this.player.pos.x) < this.pos.width;
-    const onSameLineY =
-      Math.abs(this.pos.y - this.player.pos.y) < this.pos.height;
-
-    const monsterSeesPlayer =
-      (this.randomDirection === 1 &&
-        this.player.pos.y > this.pos.y &&
-        onSameLineX) ||
-      (this.randomDirection === 0 &&
-        this.player.pos.y < this.pos.y &&
-        onSameLineX) ||
-      (this.randomDirection === 2 &&
-        this.player.pos.x < this.pos.x &&
-        onSameLineY) ||
-      (this.randomDirection === 3 &&
-        this.player.pos.x > this.pos.x &&
-        onSameLineY);
-
-    if (monsterSeesPlayer) {
-      console.log("Monster and player are on same line");
-      this.shootRocks();
-    } else {
-      this.shootRock = false;
-    }
-  }
 
   killmonster(normalAttack = false) {
     // Check if the monster is alive

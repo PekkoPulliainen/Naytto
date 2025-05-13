@@ -129,6 +129,7 @@ class Game {
       monster.drawImage(); // DRAW MONSTER
       monster.monsterMovement();
       monster.shootRocksCheckXY();
+      monster.blockRock();
     });
 
     if (this.player.sword.launching) {
