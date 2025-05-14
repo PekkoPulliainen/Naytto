@@ -154,9 +154,10 @@ class Game {
       monster.killmonster(false);
       monster.hitPlayer();
       monster.drawImage(); // DRAW MONSTER
+      monster.drawRock();
+      monster.blockShoot();
       monster.monsterMovement();
       monster.shootRocksCheckXY();
-      monster.blockRock();
     });
 
     if (this.player.sword.launching) {
@@ -396,6 +397,12 @@ class Game {
       // Generate random positions within the defined range
       const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
       const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+
+      const pixel = Util.getMapPixel(this.collisionCtx, randomX, randomY);
+      const value = Util.sumArr(pixel);
+      if (value === constants.WALL || value === constants.WATER) {
+        continue;
+      }
 
       // RANDOMIZE SPRITE SHEET POSITION
       const spriteX = Math.floor(Math.random() * 3);
