@@ -28,6 +28,7 @@ class Monster {
 
     this.canMove = true;
     this.blocked = false;
+    this.rockHit = false;
 
     this.monsterHPCount = 2;
 
@@ -194,8 +195,12 @@ class Monster {
     const moveRock = () => {
       const shootTimer = Date.now() - startTime;
   
-      if (this.blocked || shootTimer >= shootFlyTime) {
+      if (this.blocked || shootTimer >= shootFlyTime || this.rockHit) {
         this.rockIsMoving = false;
+
+        this.rockX = null;
+        this.rockY = null;
+        this.rockSize = null;
         this.canMove = true;
         return;
       }
@@ -245,12 +250,28 @@ class Monster {
       playerHitBox.y + playerHitBox.height > rockHitBox.y && playerLooksAtMonster
     ) {
       this.blocked = true;
+      this.rockHit = false;
       console.log("Blocked");
+      return;
     }
+
+    if (playerHitBox.x < rockHitBox.x + rockHitBox.width &&
+      playerHitBox.x + playerHitBox.width > rockHitBox.x &&
+      playerHitBox.y < rockHitBox.y + rockHitBox.height &&
+      playerHitBox.y + playerHitBox.height > rockHitBox.y && !playerLooksAtMonster) 
+      {
+        this.rockHit = true;
+        console.log("Player didnt block the rock");
+        this.player.hP("damage", 0.5);
+        this.hurtSound.play();
+        this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
+        return;
+      }
     
     else {
       this.blocked = false;
-
+      this.rockHit = false;
+      return;
     }
 
 
@@ -406,4 +427,3 @@ class Monster {
 }
 
 export default Monster;
-
