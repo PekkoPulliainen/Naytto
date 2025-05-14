@@ -29,6 +29,8 @@ export class Sword {
     this.spacingCooldown = 0;
     this.explosionWidth = 24;
     this.explosionHeight = 48;
+    this.beamLandedX = 0;
+    this.beamLandedY = 0;
 
     this.swordHitBoxX = 48;
     this.swordHitBoxY = 48;
@@ -45,7 +47,7 @@ export class Sword {
     this.beamHitBoxY = 0;
 
     this.flyDistance = 0;
-    this.maxDistance = 600; // DISTANCE FOR SWORD
+    this.maxDistance = 1000; // DISTANCE FOR SWORD
     this.speed = 5.5;
 
     this.retracting = false;
@@ -57,7 +59,7 @@ export class Sword {
 
     this.enemyDead = false;
 
-    this.swordDamage = 0;
+    this.swordDamage = 1;
 
     // Map Borders
     this.MAP_LEFT = 0;
@@ -70,7 +72,7 @@ export class Sword {
 
   // FOR TESTING ADDED IN MONSTER.JS WHEN TAKING DAMAGE CALLED superSword() FUNCTION.
   superSword() {
-    this.swordDamage *= 2;
+    this.swordDamage *= 1;
     this.spriteRow = 2;
     console.log("Super Sword");
   }
@@ -159,7 +161,6 @@ export class Sword {
 
       if (
         collisionValue === constants.WALL ||
-        collisionValue === constants.WATER ||
         this.beamHitBoxX < this.MAP_LEFT || // Check if beam is out of bounds on the left
         this.beamHitBoxX > this.MAP_RIGHT || // Check if beam is out of bounds on the right
         this.beamHitBoxY < this.MAP_TOP || // Check if beam is out of bounds at the top
@@ -168,6 +169,12 @@ export class Sword {
         console.log("Beam hit a collision target or border!");
         this.explosion = true;
         this.launching = false;
+        this.beamLandedX = this.beamX;
+        this.beamLandedY = this.beamY;
+        this.beamHitBoxX = 0;
+        this.beamHitBoxY = 0;
+        this.beamX = 0;
+        this.beamY = 0;
         return;
       }
 
@@ -212,6 +219,12 @@ export class Sword {
       console.log("Beam has struck an enemy!");
       this.explosion = true;
       this.launching = false;
+      this.beamLandedX = this.beamX;
+      this.beamLandedY = this.beamY;
+      this.beamHitBoxX = 0;
+      this.beamHitBoxY = 0;
+      this.beamX = 0;
+      this.beamY = 0;
       return;
     }
   }
@@ -227,8 +240,8 @@ export class Sword {
     ];
 
     for (const { dx, dy, rotation, flip } of explosions) {
-      const explosionOffsetX = beamX + dx;
-      const explosionOffsetY = beamY + dy;
+      const explosionOffsetX = this.beamLandedX + dx;
+      const explosionOffsetY = this.beamLandedY + dy;
 
       this.ctx.save(); // Save the current state
 
@@ -429,6 +442,8 @@ export class Sword {
         this.offsetY = this.swordY - this.originY;
 
         setTimeout(() => {
+          this.swordHitBoxX = 0;
+          this.swordHitBoxY = 0;
           this.retracting = true;
           this.retractProgress = 0;
         }, 210);

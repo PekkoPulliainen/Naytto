@@ -1,4 +1,5 @@
 import { Sword } from "./sword.js";
+import Game from "../game.js";
 
 class Player {
   constructor(ctx, collisionCtx) {
@@ -12,6 +13,10 @@ class Player {
 
     this.hurtSound = new Audio();
     this.hurtSound.src = "./dist/sfx/link-hurt.wav";
+
+    this.receiveSound = new Audio();
+    this.receiveSound.src = "./dist/sfx/item-received.wav";
+    this.receiveSound.volume = 0.1;
 
     this.pos = {
       x: 336,
@@ -47,6 +52,8 @@ class Player {
     this.moving = false;
     this.canMove = true;
 
+    this.pickingUp = false;
+
     this.enteringDungeon = false;
     this.exitingDungeon = false;
     this.dungeonAnimated = false;
@@ -67,6 +74,8 @@ class Player {
     this.maxHPCount = 3; // MAX HP
     this.hpCount = 3; // PLAYER HEALTH
 
+    this.hasSword = true;
+
     this.sword = new Sword(ctx, collisionCtx);
 
     window.addEventListener("keydown", (e) => this.handleKeyDown(e)); // KEYDOWN EVENT
@@ -84,6 +93,10 @@ class Player {
       this.frames.invincibility = 60; // invincibility cooldown
 
       console.log("Player took damage! Current HP:", this.hpCount);
+      if (this.hpCount === 0) {
+        console.log("Player died...");
+        this.setAlive(false);
+      }
     } else if (i === "heal") {
       this.hpCount = Math.min(6, this.hpCount + number); // Heal health
     } else if (i === "set") {
@@ -121,6 +134,18 @@ class Player {
 
   setAlive(alive) {
     this.alive = alive; // SET ALIVE STATE
+  }
+
+  resetPlayer() {
+    this.hpCount = this.maxHPCount;
+    this.pos = { x: 336, y: 432, width: 48, height: 48, direction: 0 };
+    this.traceBox = {
+      topLeft: [this.pos.x + 9, this.pos.y + 24],
+      topRight: [this.pos.x + 39, this.pos.y + 24],
+      bottomLeft: [this.pos.x + 9, this.pos.y + 45],
+      bottomRight: [this.pos.x + 39, this.pos.y + 45],
+    };
+    this.alive = true;
   }
 
   handleKeyDown(e) {
@@ -248,7 +273,6 @@ class Player {
       this.pos.direction = 0;
     }
     if (this.enteringDungeon) {
-      console.log("Dungeon fade progress:", this.dungeonFadeProgress);
     }
     // Entering
     if (this.enteringDungeon && this.dungeonFadeProgress < 1) {
@@ -258,7 +282,7 @@ class Player {
         this.enteringDungeon = false;
         this.canMove = true;
         this.dungeonAnimated = true;
-        this.canAttack = true;
+        if (this.hasSword) this.canAttack = true;
       }
     }
 
@@ -270,9 +294,49 @@ class Player {
         this.exitingDungeon = false;
         this.canMove = true;
         this.dungeonAnimated = true;
-        this.canAttack = true;
+        if (this.hasSword) this.canAttack = true;
       }
     }
+  }
+
+  pickUp(dungeonName) {
+    this.pickingUp = true;
+    this.receiveSound.play();
+    if (dungeonName === "beginning") {
+      this.hasSword = true;
+      this.canMove = false;
+      this.moving = false;
+    }
+    setTimeout(() => {
+      this.pickingUp = false;
+      this.canMove = true;
+      this.canAttack = true;
+    }, 2000);
+  }
+
+  animatePickingUp() {
+    this.ctx.drawImage(
+      this.sprite,
+      0 * this.pos.width,
+      5 * this.pos.height,
+      this.pos.width,
+      this.pos.height,
+      Math.round(this.pos.x),
+      Math.round(this.pos.y),
+      this.pos.width,
+      this.pos.height
+    );
+    this.ctx.drawImage(
+      this.sprite,
+      31 * 48,
+      0 * 48,
+      48,
+      48,
+      Math.round(this.pos.x) - 12,
+      Math.round(this.pos.y) - 47,
+      48,
+      48
+    );
   }
 
   enterDungeon() {
@@ -294,12 +358,14 @@ class Player {
   }
 
   drawImage() {
-    this.sword.draw(
-      Math.round(this.pos.x),
-      Math.round(this.pos.y),
-      this.pos.width,
-      this.pos.height
-    );
+    if (this.pickingUp) return;
+    if (this.hasSword)
+      this.sword.draw(
+        Math.round(this.pos.x),
+        Math.round(this.pos.y),
+        this.pos.width,
+        this.pos.height
+      );
 
     let drawHeight = this.pos.height;
     let sourceOffsetY = 0;
@@ -346,6 +412,7 @@ class Player {
   }
 
   drawBeam() {
+    if (!this.hasSword) return;
     this.sword.drawBeam(
       Math.round(this.pos.x), // Round to nearest integer
       Math.round(this.pos.y), // Round to nearest integer

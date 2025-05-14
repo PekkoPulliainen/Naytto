@@ -15,3 +15,5 @@ export const DUNGEON = 506;
 // Screen scroll distance
 export const VIEWWIDTH = 768;
 export const VIEWHEIGHT = 528;
+
+export const PICKUP = 297;

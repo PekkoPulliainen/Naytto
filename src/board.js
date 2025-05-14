@@ -8,6 +8,8 @@ class Board {
     this.collisionMap.src = "./dist/images/maps/overworld-collision2.png";
 
     this.pos = { x: 5376, y: 3528 }; // Initial position of the world map
+
+    this.itemsAvailable = true;
   }
 
   setLocation(playerPos, worldPos, map, collisionMap) {
@@ -39,6 +41,12 @@ class Board {
       768, // width of the canvas
       696 // height of the canvas
     );
+    if (!this.itemsAvailable) {
+      this.worldCtx.fillStyle = "black";
+      this.worldCtx.fillRect(185, 435, 400, 75);
+      this.worldCtx.fillStyle = "black";
+      this.worldCtx.fillRect(150, 280, 490, 75);
+    }
   }
 
   drawCollisionMap() {
@@ -53,6 +61,10 @@ class Board {
       768,
       696
     );
+    if (!this.itemsAvailable) {
+      this.collisionCtx.fillStyle = "black";
+      this.collisionCtx.fillRect(185, 435, 400, 100);
+    }
   }
 }
 

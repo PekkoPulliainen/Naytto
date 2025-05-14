@@ -7,12 +7,13 @@ import * as Util from "./util/util.js";
 import Monster from "./enemies/monster.js";
 
 class Game {
-  constructor(hudCtx, spriteCtx, boardCtx, collisionCtx) {
+  constructor(hudCtx, spriteCtx, boardCtx, collisionCtx, worldCtx) {
     this.player = new Player(spriteCtx, collisionCtx);
     this.hud = new Hud(hudCtx, this.player);
     this.spriteCtx = spriteCtx;
     this.board = new Board(boardCtx, collisionCtx);
     this.collisionCtx = collisionCtx;
+    this.worldCtx = worldCtx;
 
     // CREATE 3 MONSTERS FOR TESTING
 
@@ -23,11 +24,18 @@ class Game {
       { x: 7, y: 7 },
       { x: 0, y: 0 },
     ];
-    this.dungeonPositions = [{ x: 0, y: 4056 }];
+    this.dungeonPositions = [
+      { x: 0, y: 4056, looted: false }, //cave 1
+      { x: 0, y: 4400, looted: false }, // null
+    ];
     this.monsters = [];
+    this.dungeonIndex = { x: 0, y: 0, looted: false };
+    this.dungeonName = "beginning";
 
     this.preDungeonMapPos = { x: 0, y: 0 };
     this.preDungeonPlayerPos = { x: 0, y: 0 };
+
+    this.pickingUp = false;
 
     this.monster = new Monster(spriteCtx);
 
@@ -36,6 +44,8 @@ class Game {
     this.dungeonAnimated = false;
     this.dungeonCD = 0;
     this.exitDungeon = false;
+    this.dungeonSound = new Audio("./dist/sfx/enter-dungeon.wav");
+    this.dungeonSound.volume = 0.1;
 
     this.blackScreen = false;
     this.blackScreenTimerRunning = false;
@@ -93,6 +103,20 @@ class Game {
         this.startMusic.muted = this.musicMuted;
         console.log(`Music ${this.musicMuted ? "muted" : "unmuted"}`);
       }
+      if (this.player.hpCount === 0 && e.key.toLocaleLowerCase() === "enter") {
+        this.monsters = [];
+        this.player.resetPlayer();
+        this.board.pos = { x: 5376, y: 3528 };
+        this.board.render();
+        this.hud.render();
+        this.hud.clearStartPage();
+        this.hud.death = false;
+        this.startMusic.play();
+        setTimeout(() => {
+          this.music.play();
+          this.music.loop = true;
+        }, 6410);
+      }
     });
   }
 
@@ -112,12 +136,15 @@ class Game {
 
     this.clear();
     this.step(this.collisionCtx);
+    this.draw();
 
     this.player.move(null, null, null);
     this.player.update(timestamp);
     this.player.drawImage();
     this.hud.render(); // RENDER HUD
+    this.board.render();
 
+    if (this.player.pickingUp) this.player.animatePickingUp();
     if (this.dungeonCD > 0) this.dungeonCooldown();
     if (this.animatingDungeon === true) this.dungeonAnimate();
 
@@ -177,10 +204,11 @@ class Game {
   }
 
   draw() {
-    if (this.player.hpCount <= 0) {
-      //this.hud.renderDeathPage();
+    if (this.player.hpCount === 0) {
+      this.hud.renderDeathPage();
       this.music.pause();
       this.music.currentTime = 0;
+      this.monsters = [];
     }
     //this.drawEnemies();
     //this.drawAttacks();
@@ -253,11 +281,23 @@ class Game {
       this.preDungeonMapPos.y = this.board.pos.y;
       this.preDungeonPlayerPos.x = this.player.pos.x;
       this.preDungeonPlayerPos.y = this.player.pos.y;
-      console.log("pre dungeon map: " + this.preDungeonMapPos);
-      console.log("pre dungeon player: " + this.preDungeonPlayerPos);
-
-      this.board.pos.x = 0;
-      this.board.pos.y = 4056;
+      console.log(
+        `pre dungeon map: x=${this.preDungeonMapPos.x}, y=${this.preDungeonMapPos.y}`
+      );
+      console.log(
+        `pre dungeon player: x=${this.preDungeonPlayerPos.x}, y=${this.preDungeonPlayerPos.y}`
+      );
+      if (
+        this.preDungeonMapPos.x === 5376 &&
+        this.preDungeonMapPos.y === 3528
+      ) {
+        this.dungeonIndex = this.dungeonPositions[0];
+      } else {
+        this.dungeonIndex = this.dungeonPositions[1];
+      }
+      if (this.dungeonIndex.looted) this.board.itemsAvailable = false;
+      this.board.pos.x = this.dungeonIndex.x;
+      this.board.pos.y = this.dungeonIndex.y;
       this.board.drawWorld();
       this.board.drawCollisionMap(collisionCtx);
       this.player.move(160, 360, "up");
@@ -269,6 +309,13 @@ class Game {
       this.dungeonCD = 40;
     }
     if (this.dungeonFound && this.dungeonActive) {
+      if (
+        this.preDungeonMapPos.x === 5376 &&
+        this.preDungeonMapPos.y === 3528 &&
+        this.pickingUp
+      )
+        this.dungeonPositions[0].looted = true;
+      this.pickingUp = false;
       this.board.pos.x = this.preDungeonMapPos.x;
       this.board.pos.y = this.preDungeonMapPos.y;
       this.board.drawWorld();
@@ -278,6 +325,7 @@ class Game {
       this.dungeonFound = false;
       this.dungeonActive = false;
       this.blackScreen = true;
+      this.board.itemsAvailable = true;
       this.dungeonCD = 200;
     }
     if (!this.scrolling) return;
@@ -351,27 +399,35 @@ class Game {
 
       // RANDOMIZE SPRITE SHEET POSITION
       const spriteX = Math.floor(Math.random() * 3);
-      const spriteY = Math.floor(Math.random() * 3);
+      const spriteY = Math.floor(Math.random() * 4);
 
       // Add the new monster to the monsters array
-      this.monsters.push(
-        new Monster(
-          this.spriteCtx,
-          this.player.sword,
-          this.player,
-          spriteX,
-          spriteY,
-          randomX,
-          randomY
-        )
+      const monster = new Monster(
+        this.spriteCtx,
+        this.collisionCtx,
+        this.player.sword,
+        this.player,
+        spriteX,
+        spriteY,
+        randomX,
+        randomY
       );
+      if (spriteY === 0 || spriteY === 1) {
+        monster.color = "red";
+        monster.hpCount = 1;
+        monster.IFrames = 0;
+      } else if (spriteY === 2 || spriteY === 3) {
+        monster.color = "blue";
+        monster.hpCount = 2;
+        monster.IFrames = 0;
+      }
+      this.monsters.push(monster);
     }
     console.log("New monsters spawned:", this.monsters);
     console.log(this.player.pos.x, this.player.pos.y);
   }
 
   dungeonCooldown() {
-    console.log(this.dungeonCD);
     if (this.dungeonCooldownInterval)
       clearInterval(this.dungeonCooldownInterval);
     this.dungeonCD--;
@@ -391,12 +447,21 @@ class Game {
       if (this.player.playerFrameX !== 0) {
         this.blackScreen = true;
       }
-      if (this.exitDungeon === true) this.exitDungeon = false;
+      if (this.exitDungeon === true) {
+        this.exitDungeon = false;
+        this.board.itemsAvailable = true;
+      }
       return;
     }
-    if (this.dungeonActive === false && !this.exitDungeon)
+    if (this.dungeonActive === false && !this.exitDungeon) {
       this.player.enterDungeon();
-    else this.player.exitDungeon();
+      this.dungeonSound.play();
+    } else {
+      setTimeout(() => {
+        if (this.exitDungeon) this.dungeonSound.play();
+      }, 350);
+      this.player.exitDungeon();
+    }
   }
 
   checkBorder() {
@@ -442,6 +507,14 @@ class Game {
         this.dungeonFound = true;
       }
     }
+    if (pixel1value === constants.PICKUP || pixel2value === constants.PICKUP) {
+      this.player.pickUp(this.dungeonName);
+      this.pickingUp = true;
+      this.board.itemsAvailable = false;
+      this.board.render(); // Redraw to show the black rectangle
+      console.log("picking up");
+    }
+
     return false;
   }
 
@@ -491,15 +564,15 @@ class Game {
       const bottomPixel = Util.getMapPixel(
         ctx,
         this.player.traceBox.bottomLeft[0] - 3,
-        this.player.traceBox.bottomLeft[1] // it's like I have to have 1 thing for finding the player location then their hitbox and then follow both when I move so the game knows exactly where I am and can constantly draw the map again depending on my location. Look I'll show you.
+        this.player.traceBox.bottomLeft[1]
       );
       return this.checkIfBarrier(topPixel, bottomPixel);
     }
   }
 
   processInput(ctx) {
+    //if (this.player.hpCount === 0) return;
     if (this.scrolling) return;
-    if (!this.alive) return;
     let direction = this.player.getInput();
     let speed = null;
     switch (direction) {

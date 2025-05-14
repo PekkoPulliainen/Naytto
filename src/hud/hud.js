@@ -30,10 +30,22 @@ class Hud {
 
     this.startPage = new Image();
     this.startPage.src = "./dist/images/ui/start.png"; // Start page image
+
+    this.deathPage = new Image();
+    this.deathPage.src = "./dist/images/ui/deathpage.png";
+
+    this.death = false;
   }
 
   renderStartPage() {
     this.ctx.drawImage(this.startPage, 0, 0); // Draw the start page
+  }
+
+  renderDeathPage() {
+    if (this.death === false) {
+      this.ctx.drawImage(this.deathPage, 0, 0);
+      this.death = true;
+    }
   }
 
   clearStartPage() {
@@ -58,7 +70,11 @@ class Hud {
     this.updateMoney(1);
     this.updateKeys(0);
     this.updateBombs(0);
-    this.updatePrimary(0);
+    if (this.player.hasSword) this.updatePrimary(0);
+    else {
+      this.ctx.fillStyle = "black";
+      this.ctx.fillRect(380, 72, 32, 48);
+    }
     this.updateSecondary(0);
   }
   updateHearts(hpCount, maxHPCount) {
