@@ -1,10 +1,12 @@
 import Player from "../player/player.js";
 import Hud from "../hud/hud.js";
 import Sword from "../player/sword.js";
+import * as constants from "../util/constants.js";
+import * as Util from "../util/util.js";
 
 class Monster {
   // SPIRTEX, SPRITEY ARE FOR MONSTER SPRITE POSITION, X AND Y ARE FOR MONSTER POSITION ON THE MAP
-  constructor(ctx, sword, player, spriteX = 0, spriteY = 0, x = 300, y = 300) {
+  constructor(ctx, sword, player, spriteX = 0, spriteY = 0, x = 300, y = 300, collisionCtx) {
     this.ctx = ctx;
     this.sword = sword;
     this.enemy = new Image();
@@ -34,6 +36,8 @@ class Monster {
 
     this.shootingRock = new Image();
     this.shootingRock.src = "./dist/images/units/ROCK.png";
+
+    this.collisionCtx = collisionCtx;
 
     // POSITION FOR ENEMY
     this.pos = {
@@ -155,6 +159,30 @@ class Monster {
         this.sprite.x = 144;
         break;
     }
+
+    const monsterHitBox = {
+      x: this.pos.x,
+      y: this.pos.y,
+      width: this.pos.width,
+      height: this.pos.height,
+    };
+
+    const pixel = Util.getMapPixel(this.collisionCtx, monsterHitBox.x, monsterHitBox.y);
+    const value = Util.sumArr(pixel);
+    if (value === constants.WALL && this.randomDirection === 0) {
+      this.pos.y += speed;
+    }
+    else if (value === constants.WALL && this.randomDirection === 1) {
+      this.pos.y -= speed;
+    }
+    else if (value === constants.WALL && this.randomDirection === 2) {
+      this.pos.x += speed;
+    }
+    else if (value === constants.WALL && this.randomDirection === 3) {
+      this.pos.x -= speed;
+    }
+
+    
   }
 
   drawRock() {

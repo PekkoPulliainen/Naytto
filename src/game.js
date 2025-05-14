@@ -350,6 +350,12 @@ class Game {
       const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
       const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
 
+      const pixel = Util.getMapPixel(this.collisionCtx, randomX, randomY);
+      const value = Util.sumArr(pixel);
+      if (value === constants.WALL || value === constants.WATER) {
+        continue;
+      }
+
       // RANDOMIZE SPRITE SHEET POSITION
       const spriteX = Math.floor(Math.random() * 3);
       const spriteY = Math.floor(Math.random() * 3);
@@ -363,7 +369,8 @@ class Game {
           spriteX,
           spriteY,
           randomX,
-          randomY
+          randomY,
+          this.collisionCtx
         )
       );
     }
