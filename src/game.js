@@ -25,12 +25,64 @@ class Game {
       { x: 0, y: 0 },
     ];
     this.dungeonPositions = [
-      { x: 0, y: 4056, looted: false }, //cave 1
-      { x: 0, y: 4400, looted: false }, // null
+      {
+        x: 0,
+        y: 4056,
+        looted: false,
+        isShop: false,
+        moveX: 160,
+        moveY: 360,
+        returnX: -160,
+        returnY: -368,
+        moneyCave: false,
+        optionCave: false,
+        name: "beginning",
+      }, //cave 1
+      {
+        x: 768,
+        y: 4056,
+        looted: false,
+        isShop: false,
+        moveX: 25,
+        moveY: 360,
+        returnX: -20,
+        returnY: -368,
+        moneyCave: false,
+        optionCave: false,
+        name: "master sword cave",
+      }, // cave 2
+      {
+        x: 1536,
+        y: 4056,
+        looted: false,
+        isShop: false,
+        moveX: 160,
+        moveY: 360,
+        returnX: -160,
+        returnY: -368,
+        moneyCave: false,
+        optionCave: true,
+        option1: "potion",
+        option2: "hpUp",
+        name: "health cave1",
+      },
+      {
+        x: 2304,
+        y: 4056,
+        looted: false,
+        isShop: false,
+        moveX: 260,
+        moveY: 360,
+        returnX: -255,
+        returnY: -368,
+        moneyCave: true,
+        optionCave: false,
+        rubins: 30,
+        name: "money cave1",
+      },
     ];
     this.monsters = [];
-    this.dungeonIndex = { x: 0, y: 0, looted: false };
-    this.dungeonName = "beginning";
+    this.dungeonIndex = { x: 0, y: 0, looted: false, isShop: false, name: "" };
 
     this.preDungeonMapPos = { x: 0, y: 0 };
     this.preDungeonPlayerPos = { x: 0, y: 0 };
@@ -38,6 +90,7 @@ class Game {
     this.pickingUp = false;
 
     this.monster = new Monster(spriteCtx);
+    this.spawningMonsters;
 
     this.dungeonFound = false;
     this.dungeonActive = false;
@@ -68,6 +121,9 @@ class Game {
 
     this.music = new Audio("./dist/sfx/overworld.ogg");
     this.music.volume = 0.1;
+
+    this.collectSound = new Audio("./dist/sfx/collect.wav");
+    this.collectSound.volume = 0.1;
 
     this.alive = false;
 
@@ -291,23 +347,37 @@ class Game {
       if (
         this.preDungeonMapPos.x === 5376 &&
         this.preDungeonMapPos.y === 3528
+        //this.preDungeonMapPos.y === 0
       ) {
         this.dungeonIndex = this.dungeonPositions[0];
-      } else {
+      } else if (
+        this.preDungeonMapPos.x === 4608 &&
+        this.preDungeonMapPos.y === 3000
+      ) {
         this.dungeonIndex = this.dungeonPositions[1];
-      }
+      } else if (
+        this.preDungeonMapPos.x === 3072 &&
+        this.preDungeonMapPos.y === 1944
+      ) {
+        this.dungeonIndex = this.dungeonPositions[2];
+      } else if (
+        this.preDungeonMapPos.x === 3840 &&
+        this.preDungeonMapPos.y === 3528
+      )
+        this.dungeonIndex = this.dungeonPositions[3];
       if (this.dungeonIndex.looted) this.board.itemsAvailable = false;
       this.board.pos.x = this.dungeonIndex.x;
       this.board.pos.y = this.dungeonIndex.y;
       this.board.drawWorld();
       this.board.drawCollisionMap(collisionCtx);
-      this.player.move(160, 360, "up");
+      this.player.move(this.dungeonIndex.moveX, this.dungeonIndex.moveY, "up");
       this.scanGrid(collisionCtx);
       this.dungeonFound = false;
       this.dungeonActive = true;
       this.dungeonAnimated = false;
       this.player.dungeonAnimated = false;
       this.dungeonCD = 40;
+      this.monsters = [];
     }
     if (this.dungeonFound && this.dungeonActive) {
       if (
@@ -316,18 +386,31 @@ class Game {
         this.pickingUp
       )
         this.dungeonPositions[0].looted = true;
+      else if (
+        this.preDungeonMapPos.x === 4608 &&
+        this.preDungeonMapPos.y === 3000 &&
+        this.pickingUp
+      ) {
+        this.dungeonPositions[0].looted = true;
+        this.dungeonPositions[1].looted = true;
+      }
       this.pickingUp = false;
       this.board.pos.x = this.preDungeonMapPos.x;
       this.board.pos.y = this.preDungeonMapPos.y;
       this.board.drawWorld();
       this.board.drawCollisionMap(collisionCtx);
-      this.player.move(-160, -368, "down");
+      this.player.move(
+        this.dungeonIndex.returnX,
+        this.dungeonIndex.returnY,
+        "down"
+      );
       this.scanGrid(collisionCtx);
       this.dungeonFound = false;
       this.dungeonActive = false;
       this.blackScreen = true;
       this.board.itemsAvailable = true;
       this.dungeonCD = 200;
+      if (!this.safeZone) this.spawnMonsters();
     }
     if (!this.scrolling) return;
     if (this.scrollQueue <= 0) {
@@ -377,59 +460,19 @@ class Game {
 
   spawnMonsters() {
     // Clear existing monsters
-    this.monsters = [];
-
-    // RANGES FOR MONSTERS
-    const minX = 200;
-    const maxX = 500;
-    const minY = 200;
-    const maxY = 500;
-
-    const minMonsters = 2;
-    const maxMonsters = 5;
-
-    // NUMBER OF MONSTERS TO SPAWN
-    const numberOfMonsters =
-      Math.floor(Math.random() * (maxMonsters - minMonsters + 1)) + minMonsters;
-
-    // CREATE MONSTERS AT RANDOM POSITIONS
-    for (let i = 0; i < numberOfMonsters; i++) {
-      // Generate random positions within the defined range
-      const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
-      const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
-
-      const pixel = Util.getMapPixel(this.collisionCtx, randomX, randomY);
-      const value = Util.sumArr(pixel);
-      if (value === constants.WALL || value === constants.WATER) {
-        continue;
-      }
-
-      // RANDOMIZE SPRITE SHEET POSITION
-      const spriteX = Math.floor(Math.random() * 3);
-      const spriteY = Math.floor(Math.random() * 4);
-
-      // Add the new monster to the monsters array
-      const monster = new Monster(
-        this.spriteCtx,
-        this.collisionCtx,
-        this.player.sword,
-        this.player,
-        spriteX,
-        spriteY,
-        randomX,
-        randomY
-      );
-      if (spriteY === 0 || spriteY === 1) {
-        monster.color = "red";
-        monster.hpCount = 1;
-        monster.IFrames = 0;
-      } else if (spriteY === 2 || spriteY === 3) {
-        monster.color = "blue";
-        monster.hpCount = 2;
-        monster.IFrames = 0;
-      }
-      this.monsters.push(monster);
-    }
+    this.monsters = Monster.spawnMonsters({
+      spriteCtx: this.spriteCtx,
+      collisionCtx: this.collisionCtx,
+      sword: this.player.sword,
+      player: this.player,
+      minX: 200,
+      maxX: 500,
+      minY: 200,
+      maxY: 500,
+      minMonsters: 2,
+      maxMonsters: 5,
+    });
+    this.spawningMonsters = true;
     console.log("New monsters spawned:", this.monsters);
     console.log(this.player.pos.x, this.player.pos.y);
   }
@@ -515,11 +558,39 @@ class Game {
       }
     }
     if (pixel1value === constants.PICKUP || pixel2value === constants.PICKUP) {
-      this.player.pickUp(this.dungeonName);
+      if (this.dungeonIndex.moneyCave) {
+        this.player.rubinCount += this.dungeonIndex.rubins;
+        this.collectSound.play();
+        this.dungeonIndex.looted = true;
+        this.board.itemsAvailable = false;
+        this.board.render();
+        return;
+      }
+      if (this.dungeonIndex.optionCave) {
+        this.player.pickUp(this.dungeonIndex.name, this.dungeonIndex.option1);
+        this.pickingUp = true;
+        this.board.itemsAvailable = false;
+        this.board.render();
+        this.dungeonIndex.looted = true;
+        console.log("picked up " + this.dungeonIndex.option1);
+        return;
+      }
+      this.player.pickUp(this.dungeonIndex.name);
       this.pickingUp = true;
       this.board.itemsAvailable = false;
       this.board.render(); // Redraw to show the black rectangle
       console.log("picking up");
+    }
+    if (
+      pixel1value === constants.PICKUP2 ||
+      pixel2value === constants.PICKUP2
+    ) {
+      this.player.pickUp(this.dungeonIndex.name, this.dungeonIndex.option2);
+      this.pickingUp = true;
+      this.board.itemsAvailable = false;
+      this.board.render();
+      this.dungeonIndex.looted = true;
+      console.log("picked up " + this.dungeonIndex.option2);
     }
 
     return false;

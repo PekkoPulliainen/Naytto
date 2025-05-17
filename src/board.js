@@ -43,9 +43,9 @@ class Board {
     );
     if (!this.itemsAvailable) {
       this.worldCtx.fillStyle = "black";
-      this.worldCtx.fillRect(185, 435, 400, 75);
+      this.worldCtx.fillRect(140, 435, 520, 75);
       this.worldCtx.fillStyle = "black";
-      this.worldCtx.fillRect(150, 280, 490, 75);
+      this.worldCtx.fillRect(120, 280, 540, 75);
     }
   }
 

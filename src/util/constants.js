@@ -17,3 +17,4 @@ export const VIEWWIDTH = 768;
 export const VIEWHEIGHT = 528;
 
 export const PICKUP = 297;
+export const PICKUP2 = 371;

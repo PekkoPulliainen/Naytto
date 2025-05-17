@@ -11,6 +11,12 @@ class Player {
     this.beamSprite = new Image();
     this.beamSprite.src = "./dist/images/player/beams.png";
 
+    this.secondaryItems = new Image();
+    this.secondaryItems.src = "./dist/images/items/secondaryItems.png"; // Secondary items image
+
+    this.heartContainer = new Image();
+    this.heartContainer.src = "./dist/images/items/heartContainer.png";
+
     this.hurtSound = new Audio();
     this.hurtSound.src = "./dist/sfx/link-hurt.wav";
 
@@ -73,8 +79,14 @@ class Player {
 
     this.maxHPCount = 3; // MAX HP
     this.hpCount = 3; // PLAYER HEALTH
+    this.maxHPUp = false;
+    this.godMode = false;
+
+    this.rubinCount = 0;
 
     this.hasSword = true;
+    this.swordIndex = 0;
+    this.pickingUpSword = false;
 
     this.sword = new Sword(ctx, collisionCtx);
 
@@ -85,12 +97,13 @@ class Player {
   // HP FUNKTIO
 
   hP(i, number = 1) {
+    if (this.godMode) return;
     if (i === "damage") {
       if (this.frames.invincibility > 0) return; // Ignore damage if invincibility is active
 
       this.hpCount = Math.max(0, this.hpCount - number); // Reduce health
       this.hurtSound.play(); // Play hurt sound
-      this.frames.invincibility = 60; // invincibility cooldown
+      this.frames.invincibility = 90; // invincibility cooldown
 
       console.log("Player took damage! Current HP:", this.hpCount);
       if (this.hpCount === 0) {
@@ -150,6 +163,19 @@ class Player {
 
   handleKeyDown(e) {
     if (!this.alive) return; // DO NOT UPDATE IF DEAD
+
+    if (e.key.toLowerCase() === "j") {
+      this.move(-240, 0, "left");
+    }
+    if (e.key.toLowerCase() === "i") {
+      this.move(0, -100, "up");
+    }
+    if (e.key.toLowerCase() === "l") {
+      this.move(240, 0, "right");
+    }
+    if (e.key.toLowerCase() === "k") {
+      this.move(0, 100, "down");
+    }
 
     // NO SCROLL
     if (e.key === " " || e.code === "Space") {
@@ -299,44 +325,115 @@ class Player {
     }
   }
 
-  pickUp(dungeonName) {
+  pickUp(dungeonName, item) {
+    this.pickingAnimation1 = false;
+    this.pickingAnimation2 = false;
     this.pickingUp = true;
     this.receiveSound.play();
     if (dungeonName === "beginning") {
+      this.pickingAnimation1 = true;
       this.hasSword = true;
-      this.canMove = false;
-      this.moving = false;
+      this.swordIndex = 0;
+      this.pickingUpSword = true;
     }
+    if (dungeonName === "master sword cave") {
+      this.pickingAnimation1 = true;
+      this.hasSword = true;
+      this.swordIndex = 1;
+      this.sword.masterSword();
+      this.pickingUpSword = true;
+    }
+    if (item === "potion") {
+      this.pickingAnimation2 = true;
+      this.pickingUpPotion = true;
+    }
+    if (item === "hpUp") {
+      this.pickingAnimation2 = true;
+      this.maxHPUp = true;
+    }
+    this.canMove = false;
+    this.moving = false;
     setTimeout(() => {
+      if (this.pickingUpPotion) this.hpCount = this.maxHPCount;
+      if (this.maxHPUp) {
+        this.maxHPCount += 1;
+        this.hpCount += 1;
+      }
       this.pickingUp = false;
       this.canMove = true;
       this.canAttack = true;
+      this.pickingUpSword = false;
+      this.pickingUpPotion = false;
+      this.maxHPUp = false;
     }, 2000);
   }
 
   animatePickingUp() {
-    this.ctx.drawImage(
-      this.sprite,
-      0 * this.pos.width,
-      5 * this.pos.height,
-      this.pos.width,
-      this.pos.height,
-      Math.round(this.pos.x),
-      Math.round(this.pos.y),
-      this.pos.width,
-      this.pos.height
-    );
-    this.ctx.drawImage(
-      this.sprite,
-      31 * 48,
-      0 * 48,
-      48,
-      48,
-      Math.round(this.pos.x) - 12,
-      Math.round(this.pos.y) - 47,
-      48,
-      48
-    );
+    if (this.pickingAnimation1) {
+      this.ctx.drawImage(
+        this.sprite,
+        0 * this.pos.width,
+        5 * this.pos.height,
+        this.pos.width,
+        this.pos.height,
+        Math.round(this.pos.x),
+        Math.round(this.pos.y),
+        this.pos.width,
+        this.pos.height
+      );
+    }
+    if (this.pickingAnimation2) {
+      this.ctx.drawImage(
+        this.sprite,
+        1 * this.pos.width,
+        5 * this.pos.height,
+        this.pos.width,
+        this.pos.height,
+        Math.round(this.pos.x),
+        Math.round(this.pos.y),
+        this.pos.width,
+        this.pos.height
+      );
+    }
+    if (this.pickingUpSword) {
+      this.ctx.drawImage(
+        this.sprite,
+        31 * 48,
+        this.swordIndex * 48,
+        48,
+        48,
+        Math.round(this.pos.x) - 12,
+        Math.round(this.pos.y) - 47,
+        48,
+        48
+      );
+    }
+    if (this.pickingUpPotion) {
+      this.ctx.drawImage(
+        this.secondaryItems,
+        8 * 12,
+        0 * 24,
+        24,
+        48,
+        Math.round(this.pos.x) + 12,
+        Math.round(this.pos.y) - 47,
+        24,
+        48
+      );
+    }
+    if (this.maxHPUp) {
+      this.ctx.drawImage(
+        this.heartContainer,
+        0,
+        0,
+        39,
+        39,
+        Math.round(this.pos.x) + 5,
+        Math.round(this.pos.y) - 47,
+        39,
+        39
+      );
+    }
   }
 
   enterDungeon() {

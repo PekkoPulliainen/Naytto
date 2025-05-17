@@ -38,7 +38,9 @@ class Monster {
 
     this.player = player;
 
-    this.canMove = true;
+    this.canMove = false;
+    this.canTakeDamage = false;
+
     this.canShoot = false;
     this.blocked = false;
     this.rockHit = false;
@@ -72,7 +74,10 @@ class Monster {
     setTimeout(() => {
       this.showSpawnEffect = false;
       this.canHitPlayer = true;
-    }, 700);
+      this.canTakeDamage = true;
+      this.canMove = true;
+      this.canShoot = true;
+    }, 1400);
   }
 
   drawImage() {
@@ -124,9 +129,103 @@ class Monster {
     }
   }
 
+  static spawnMonsters({
+    spriteCtx,
+    collisionCtx,
+    sword,
+    player,
+    minX = 200,
+    maxX = 500,
+    minY = 200,
+    maxY = 500,
+    minMonsters = 2,
+    maxMonsters = 5,
+  }) {
+    const monsters = [];
+    const monsterPositions = [];
+    const numberOfMonsters =
+      Math.floor(Math.random() * (maxMonsters - minMonsters + 1)) + minMonsters;
+
+    for (let i = 0; i < numberOfMonsters; i++) {
+      let validPosition = false;
+      let randomX, randomY;
+      let attempts = 0;
+      while (!validPosition && attempts < 50) {
+        attempts++;
+        randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
+        randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+
+        // Check all four corners for walls/water
+        const corners = [
+          [randomX, randomY],
+          [randomX + 47, randomY],
+          [randomX, randomY + 47],
+          [randomX + 47, randomY + 47],
+        ];
+        let blocked = false;
+        for (const [cx, cy] of corners) {
+          const pixel = Util.getMapPixel(collisionCtx, cx, cy);
+          const value = Util.sumArr(pixel);
+          if (value === constants.WALL || value === constants.WATER) {
+            blocked = true;
+            break;
+          }
+        }
+        if (blocked) continue;
+
+        // Check for overlap with existing monsters
+        let overlap = false;
+        for (const pos of monsterPositions) {
+          if (
+            randomX < pos.x + 48 &&
+            randomX + 48 > pos.x &&
+            randomY < pos.y + 48 &&
+            randomY + 48 > pos.y
+          ) {
+            overlap = true;
+            break;
+          }
+        }
+        if (!overlap) {
+          validPosition = true;
+          monsterPositions.push({ x: randomX, y: randomY });
+        }
+      }
+      if (!validPosition) continue;
+
+      // RANDOMIZE SPRITE SHEET POSITION
+      const spriteX = Math.floor(Math.random() * 3);
+      const spriteY = Math.floor(Math.random() * 4);
+
+      // Create the monster
+      const monster = new Monster(
+        spriteCtx,
+        collisionCtx,
+        sword,
+        player,
+        spriteX,
+        spriteY,
+        randomX,
+        randomY
+      );
+      if (spriteY === 0 || spriteY === 1) {
+        monster.color = "red";
+        monster.hpCount = 1;
+        monster.IFrames = 0;
+      } else if (spriteY === 2 || spriteY === 3) {
+        monster.color = "blue";
+        monster.hpCount = 2;
+        monster.IFrames = 0;
+      }
+      monsters.push(monster);
+    }
+    return monsters;
+  }
+
   // VIHUJEN LIIKKEELLE.
   monsterMovement() {
     if (!this.alive) return; // Don't move if the monster is dead
+    if (!this.canMove || this.showSpawnEffect) return;
 
     if (!this.movementInterval && this.canMove) {
       this.randomDirection = Math.floor(Math.random() * 4);
@@ -208,36 +307,65 @@ class Monster {
 
   drawRock() {
     if (this.rockIsMoving) {
+      let angle = 0;
+      switch (this.rockDirection) {
+        case 0:
+          angle = 0;
+          break;
+        case 1:
+          angle = Math.PI;
+          break;
+        case 2:
+          angle = -Math.PI / 2;
+          break;
+        case 3:
+          angle = Math.PI / 2;
+          break;
+      }
+      this.ctx.save();
+
+      this.ctx.translate(
+        this.rockX + this.rockSize / 2,
+        this.rockY + this.rockSize / 2
+      );
+      this.ctx.rotate(angle);
+      // Draw the rock after rotation
       this.ctx.drawImage(
         this.shootingRock,
         0,
         0,
         32,
         32,
-        this.rockX,
-        this.rockY,
+        -this.rockSize / 2,
+        -this.rockSize / 2,
         this.rockSize,
         this.rockSize
       );
+      this.ctx.restore();
     }
   }
 
   enemyShoot() {
     if (!this.alive || this.rockIsMoving) return; // Prevent multiple shots
+    if (!this.canShoot) return;
 
     this.rockIsMoving = true; // Flag to track active rock
 
-    const rockSize = 32;
+    const rockSize = 28;
     this.rockX = this.pos.x + this.pos.width / 2 - rockSize / 2;
     this.rockY = this.pos.y + this.pos.height / 2 - rockSize / 2;
+    this.rockHitBoxX = 24;
+    this.rockHitBoxY = 24;
     this.rockSize = rockSize;
 
     this.canMove = false; // Stop monster movement while shooting
 
-    const direction = this.randomDirection;
-    const speed = 2; // PIXELS PER FRAME
+    this.rockDirection = this.randomDirection;
 
-    const shootFlyTime = 2000; // Duration the rock moves (in ms)
+    const direction = this.rockDirection;
+    const speed = 3; // PIXELS PER FRAME
+
+    const shootFlyTime = 3000; // Duration the rock moves (in ms)
     const startTime = Date.now();
 
     const moveRock = () => {
@@ -246,10 +374,18 @@ class Monster {
       if (this.blocked || shootTimer >= shootFlyTime || this.rockHit) {
         this.rockIsMoving = false;
 
-        this.rockX = null;
-        this.rockY = null;
+        this.rockX = 0;
+        this.rockY = 0;
+        this.rockHitBoxX = 0;
+        this.rockHitBoxY = 0;
         this.rockSize = null;
         this.canMove = true;
+        this.canShoot = false;
+
+        setTimeout(() => {
+          this.canShoot = true;
+        }, 2500);
+
         return;
       }
 
@@ -285,13 +421,6 @@ class Monster {
       height: this.player.pos.height,
     };
 
-    const rockHitBox = {
-      x: this.rockX,
-      y: this.rockY,
-      width: this.rockSize,
-      height: this.rockSize,
-    };
-
     const playerLooksAtMonster =
       (this.randomDirection === 1 &&
         this.player.pos.y > this.pos.y &&
@@ -307,10 +436,10 @@ class Monster {
         this.player.facing == "a");
 
     if (
-      playerHitBox.x < rockHitBox.x + rockHitBox.width &&
-      playerHitBox.x + playerHitBox.width > rockHitBox.x &&
-      playerHitBox.y < rockHitBox.y + rockHitBox.height &&
-      playerHitBox.y + playerHitBox.height > rockHitBox.y &&
+      playerHitBox.x < this.rockX + this.rockHitBoxX &&
+      playerHitBox.x + playerHitBox.width > this.rockX &&
+      playerHitBox.y < this.rockY + this.rockHitBoxY &&
+      playerHitBox.y + playerHitBox.height > this.rockY &&
       playerLooksAtMonster
     ) {
       this.blocked = true;
@@ -320,16 +449,15 @@ class Monster {
     }
 
     if (
-      playerHitBox.x < rockHitBox.x + rockHitBox.width &&
-      playerHitBox.x + playerHitBox.width > rockHitBox.x &&
-      playerHitBox.y < rockHitBox.y + rockHitBox.height &&
-      playerHitBox.y + playerHitBox.height > rockHitBox.y &&
+      playerHitBox.x < this.rockX + this.rockHitBoxX &&
+      playerHitBox.x + playerHitBox.width > this.rockX &&
+      playerHitBox.y < this.rockY + this.rockHitBoxY &&
+      playerHitBox.y + playerHitBox.height > this.rockY &&
       !playerLooksAtMonster
     ) {
       this.rockHit = true;
       console.log("Player didnt block the rock");
       this.player.hP("damage", 0.5);
-      this.hurtSound.play();
       this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
       return;
     } else {
@@ -367,16 +495,9 @@ class Monster {
   }
 
   killmonster(normalAttack = false) {
+    if (this.showSpawnEffect) return;
     // Check if the monster is alive
     if (!this.alive) return;
-
-    // SWORD HITBOX FROM SWORD.js
-    const swordHitBox = {
-      x: this.sword.beamX || this.sword.swordHitBoxX,
-      y: this.sword.beamY || this.sword.swordHitBoxY,
-      width: this.sword.beamWidth || this.sword.swordHitBoxWidth,
-      height: this.sword.beamHeight || this.sword.swordHitBoxHeight,
-    };
 
     // HITBOX FOR MONSTER
     const monsterHitBox = {
@@ -386,16 +507,26 @@ class Monster {
       height: this.pos.height,
     };
 
+    // SWORD HITBOX FROM SWORD.js
+    const swordHitBox = {
+      x: this.sword.swordHitBoxX,
+      y: this.sword.swordHitBoxY,
+      width: this.sword.swordHitBoxWidth,
+      height: this.sword.swordHitBoxHeight,
+    };
+
+    // Beam hitbox
+    const beamHitBox = {
+      x: this.sword.beamHitBoxX,
+      y: this.sword.beamHitBoxY,
+      width: this.sword.beamWidth,
+      height: this.sword.beamHeight,
+    };
+
     // DETECT COLLISION FOR BEAM OR NORMAL ATTACK
     const collisionDetected = normalAttack
-      ? this.sword.swordX < monsterHitBox.x + monsterHitBox.width &&
-        this.sword.swordX + this.sword.beamWidth > monsterHitBox.x &&
-        this.sword.swordY < monsterHitBox.y + monsterHitBox.height &&
-        this.sword.swordY + this.sword.beamHeight > monsterHitBox.y
-      : swordHitBox.x < monsterHitBox.x + monsterHitBox.width &&
-        swordHitBox.x + swordHitBox.width > monsterHitBox.x &&
-        swordHitBox.y < monsterHitBox.y + monsterHitBox.height &&
-        swordHitBox.y + swordHitBox.height > monsterHitBox.y;
+      ? Util.checkCollision(swordHitBox, monsterHitBox)
+      : Util.checkCollision(beamHitBox, monsterHitBox);
 
     //console.log("Sword X: " + this.sword.swordX + " Sword Y: " + this.sword.swordY);
     this.ctx.strokeStyle = "red";
@@ -422,6 +553,14 @@ class Monster {
       this.pos.height
     );
 
+    this.ctx.strokeStyle = "purple";
+    this.ctx.strokeRect(
+      this.rockX,
+      this.rockY,
+      this.rockHitBoxX,
+      this.rockHitBoxY
+    );
+
     if (collisionDetected) {
       if (this.IFrames === 0) {
         this.hpCount -= this.sword.swordDamage;
@@ -431,11 +570,15 @@ class Monster {
         }, 1250);
         if (this.hpCount === 0 || 0 > this.hpCount) {
           this.alive = false; // Mark the monster as dead
+          this.pos.x = 0;
+          this.pos.y = 0;
+          this.width = 0;
+          this.height = 0;
           this.showDeathEffect = true; // Show the death effect
           console.log("Monster killed!");
         }
         this.sword.enemyHit();
-        this.hitEnemySound.play();
+        if (this.canTakeDamage) this.hitEnemySound.play();
         console.log("Monster hit!");
         if (this.showDeathEffect) {
           setTimeout(() => {
@@ -474,7 +617,6 @@ class Monster {
     ) {
       // Reduce player's health by 2, 2= 1 heart
       this.player.hP("damage", 0.5); // Call the player's method to reduce health
-      this.hurtSound.play();
 
       // Notify the HUD to update the health display
       this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);

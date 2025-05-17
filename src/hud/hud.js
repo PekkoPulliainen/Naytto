@@ -67,10 +67,10 @@ class Hud {
     );
     this.updateHearts(this.player.hpCount, this.player.maxHPCount); // Update hearts with a placeholder value
     this.updateMinimap(this.mapPosition);
-    this.updateMoney(1);
+    this.updateMoney(this.player.rubinCount);
     this.updateKeys(0);
     this.updateBombs(0);
-    if (this.player.hasSword) this.updatePrimary(0);
+    if (this.player.hasSword) this.updatePrimary(this.player.swordIndex);
     else {
       this.ctx.fillStyle = "black";
       this.ctx.fillRect(380, 72, 32, 48);
@@ -98,6 +98,9 @@ class Hud {
 
   updateMapPos(position) {
     this.mapPosition = position;
+    console.log(
+      `map position: x=${this.mapPosition.x}, y=${this.mapPosition.y}`
+    );
     return;
   }
 

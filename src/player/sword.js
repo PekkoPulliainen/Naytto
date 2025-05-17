@@ -77,6 +77,12 @@ export class Sword {
     console.log("Super Sword");
   }
 
+  masterSword() {
+    this.swordDamage = 2;
+    this.spriteRow = 1;
+    console.log("Master Sword");
+  }
+
   startAttack(facing) {
     this.attacking = true;
     this.facing = facing;
