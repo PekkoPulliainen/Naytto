@@ -509,8 +509,12 @@ class Game {
     } else {
       setTimeout(() => {
         if (this.exitDungeon) this.dungeonSound.play();
+
       }, 350);
       this.player.exitDungeon();
+    }
+    if (this.exitDungeon){
+      this.monsters = [];
     }
   }
 
