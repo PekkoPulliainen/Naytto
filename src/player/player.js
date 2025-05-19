@@ -508,12 +508,11 @@ class Player {
           drawHeight
         );
       }
-    }
-    if (this.frames.invincibility) {
+    } else {
       this.ctx.drawImage(
         this.sprite,
-        this.playerFrameX2 * this.pos.width,
-        this.playerFrameY * this.pos.height,
+        this.playerFrameX * this.pos.width,
+        this.pos.direction * this.pos.height,
         this.pos.width,
         this.pos.height,
         Math.round(this.pos.x),
@@ -521,11 +520,12 @@ class Player {
         this.pos.width,
         this.pos.height
       );
-    } else {
+    }
+    if (this.frames.invincibility) {
       this.ctx.drawImage(
         this.sprite,
-        this.playerFrameX * this.pos.width,
-        this.pos.direction * this.pos.height,
+        this.playerFrameX2 * this.pos.width,
+        this.playerFrameY * this.pos.height,
         this.pos.width,
         this.pos.height,
         Math.round(this.pos.x),
