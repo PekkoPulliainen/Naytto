@@ -74,7 +74,7 @@ class Player {
     this.attackFrameTimer = 0; // ATTACK FRAME TIMER
 
     this.keys = {}; // KEY STATE
-    this.canAttack = true; // ALLOW ATTACKS
+    this.canAttack = false; // ALLOW ATTACKS
     this.spacePressed = false; // SPACE KEY PRESSED
 
     this.maxHPCount = 3; // MAX HP
@@ -84,7 +84,7 @@ class Player {
 
     this.rubinCount = 0;
 
-    this.hasSword = true;
+    this.hasSword = false;
     this.swordIndex = 0;
     this.pickingUpSword = false;
 

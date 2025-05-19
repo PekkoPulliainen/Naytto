@@ -529,7 +529,7 @@ class Monster {
       : Util.checkCollision(beamHitBox, monsterHitBox);
 
     //console.log("Sword X: " + this.sword.swordX + " Sword Y: " + this.sword.swordY);
-    this.ctx.strokeStyle = "red";
+    /* this.ctx.strokeStyle = "red";
     this.ctx.strokeRect(
       this.sword.swordHitBoxX,
       this.sword.swordHitBoxY,
@@ -559,7 +559,7 @@ class Monster {
       this.rockY,
       this.rockHitBoxX,
       this.rockHitBoxY
-    );
+    ); */
 
     if (collisionDetected) {
       if (this.IFrames === 0) {

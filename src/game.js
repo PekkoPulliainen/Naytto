@@ -365,6 +365,7 @@ class Game {
         this.preDungeonMapPos.y === 3528
       )
         this.dungeonIndex = this.dungeonPositions[3];
+      else this.dungeonIndex = this.dungeonPositions[0];
       if (this.dungeonIndex.looted) this.board.itemsAvailable = false;
       this.board.pos.x = this.dungeonIndex.x;
       this.board.pos.y = this.dungeonIndex.y;
@@ -509,11 +510,10 @@ class Game {
     } else {
       setTimeout(() => {
         if (this.exitDungeon) this.dungeonSound.play();
-
       }, 350);
       this.player.exitDungeon();
     }
-    if (this.exitDungeon){
+    if (this.exitDungeon) {
       this.monsters = [];
     }
   }
