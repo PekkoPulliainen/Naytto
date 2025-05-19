@@ -354,13 +354,6 @@ export class Sword {
         frameHeight
       );
     }
-    this.ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-    this.ctx.fillRect(
-      this.beamHitBoxX,
-      this.beamHitBoxY,
-      this.beamWidth,
-      this.beamHeight
-    );
   }
 
   drawRetractSword(frameWidth, frameHeight) {
