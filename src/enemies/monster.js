@@ -36,6 +36,10 @@ class Monster {
     this.hitEnemySound = new Audio();
     this.hitEnemySound.src = "./dist/sfx/hit-enemy.wav";
 
+    this.shieldSound = new Audio();
+    this.shieldSound.src = "./dist/sfx/shield-deflect.wav";
+    this.shieldSound.volume = 0.1;
+
     this.player = player;
 
     this.canMove = false;
@@ -444,6 +448,7 @@ class Monster {
     ) {
       this.blocked = true;
       this.rockHit = false;
+      this.shieldSound.play();
       console.log("Blocked");
       return;
     }
