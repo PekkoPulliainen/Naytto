@@ -48,7 +48,7 @@ export class Sword {
 
     this.flyDistance = 0;
     this.maxDistance = 1000; // DISTANCE FOR SWORD
-    this.speed = 5.5;
+    this.speed = 7;
 
     this.retracting = false;
     this.retractProgress = 0;
@@ -157,16 +157,7 @@ export class Sword {
     // SWORD LAUNCHING
     if (this.launching) {
       const move = this.speed;
-
-      const collisionPixel = Util.getMapPixel(
-        this.collisionCtx,
-        this.beamHitBoxX + 14, // X position of the beam
-        this.beamHitBoxY + 10 // Y position of the beam
-      );
-      const collisionValue = Util.sumArr(collisionPixel);
-
       if (
-        collisionValue === constants.WALL ||
         this.beamHitBoxX < this.MAP_LEFT || // Check if beam is out of bounds on the left
         this.beamHitBoxX > this.MAP_RIGHT || // Check if beam is out of bounds on the right
         this.beamHitBoxY < this.MAP_TOP || // Check if beam is out of bounds at the top

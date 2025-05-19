@@ -29,6 +29,9 @@ class Monster {
 
     this.deathEffect = new Image();
     this.deathEffect.src = "./dist/images/effects.png";
+    this.deathEffectFrame = 9;
+    this.deathEffectTimer = 0;
+    this.deathEffectDuration = 30;
 
     this.hurtSound = new Audio();
     this.hurtSound.src = "./dist/sfx/link-hurt.wav";
@@ -45,6 +48,13 @@ class Monster {
     this.canMove = false;
     this.canTakeDamage = false;
 
+    this.monsterFrameY = 0;
+    this.monsterFrameY2 = 0;
+    this.monsterAnimationFrame = 0;
+    this.monsterInvincibilityFrame = 0;
+    this.moving = false;
+    this.lastToggle = 0;
+
     this.canShoot = false;
     this.blocked = false;
     this.rockHit = false;
@@ -60,6 +70,8 @@ class Monster {
       y: y,
       width: 48,
       height: 48,
+      damageDirection: 0,
+      direction2: 0,
     };
 
     this.sprite = {
@@ -67,6 +79,11 @@ class Monster {
       y: spriteY * 48,
       width: 48,
       height: 48,
+    };
+
+    this.frames = {
+      invincibility: 0,
+      knockback: 0,
     };
 
     this.alive = true; // Track if the monster is alive
@@ -82,55 +99,6 @@ class Monster {
       this.canMove = true;
       this.canShoot = true;
     }, 1400);
-  }
-
-  drawImage() {
-    if (this.showDeathEffect) {
-      // Draw the death effect image
-      this.ctx.drawImage(
-        // CALCULATED THE POSITIOn AS 432, 48*9.
-        this.deathEffect,
-        432,
-        0,
-        48,
-        48,
-        this.pos.x,
-        this.pos.y,
-        this.pos.width,
-        this.pos.height
-      );
-      return; // Stop drawing anything else if the death effect is active
-    }
-
-    if (!this.alive) return; // Don't draw if the monster is dead and no death effect is active
-
-    if (this.showSpawnEffect) {
-      // Draw the spawn effect image
-      this.ctx.drawImage(
-        this.spawnEffect,
-        0,
-        0,
-        48,
-        48,
-        this.pos.x,
-        this.pos.y,
-        this.pos.width,
-        this.pos.height
-      );
-    } else {
-      // Draw the monster image
-      this.ctx.drawImage(
-        this.enemy,
-        this.sprite.x,
-        this.sprite.y,
-        this.sprite.width,
-        this.sprite.height,
-        this.pos.x,
-        this.pos.y,
-        this.pos.width,
-        this.pos.height
-      );
-    }
   }
 
   static spawnMonsters({
@@ -199,7 +167,8 @@ class Monster {
 
       // RANDOMIZE SPRITE SHEET POSITION
       const spriteX = Math.floor(Math.random() * 3);
-      const spriteY = Math.floor(Math.random() * 4);
+      const spriteY = Math.floor(Math.random() * 2);
+      console.log("spriteY = " + spriteY);
 
       // Create the monster
       const monster = new Monster(
@@ -212,24 +181,65 @@ class Monster {
         randomX,
         randomY
       );
-      if (spriteY === 0 || spriteY === 1) {
+      if (spriteY === 0) {
+        monster.monsterFrameY = 0;
         monster.color = "red";
         monster.hpCount = 1;
-        monster.IFrames = 0;
-      } else if (spriteY === 2 || spriteY === 3) {
+        monster.invincibility = 0;
+      } else if (spriteY === 1) {
+        monster.monsterFrameY = 2;
         monster.color = "blue";
         monster.hpCount = 2;
-        monster.IFrames = 0;
+        monster.frames.invincibility = 75;
       }
       monsters.push(monster);
     }
     return monsters;
   }
 
+  update() {
+    if (this.frames.invincibility) {
+      this.frames.invincibility--;
+      this.animateInvincible();
+    }
+    if (this.frames.knockback) this.frames.knockback--;
+  }
+
+  move(x, y, direction) {
+    if (direction === "up") {
+      this.pos.y += y;
+      this.pos.x += x;
+      if (!this.frames.knockback) this.sprite.x = 96;
+      if (!this.frames.knockback) this.facing = "w";
+      this.moving = true;
+    } else if (direction === "down") {
+      this.pos.y += y;
+      this.pos.x += x;
+      if (!this.frames.knockback) this.sprite.x = 0;
+      if (!this.frames.knockback) this.facing = "s";
+      this.moving = true;
+    } else if (direction === "left") {
+      this.pos.x += x;
+      this.pos.y += y;
+      if (!this.frames.knockback) this.sprite.x = 48;
+      if (!this.frames.knockback) this.facing = "a";
+      this.moving = true;
+    } else if (direction === "right") {
+      this.pos.x += x;
+      this.pos.y += y;
+      if (!this.frames.knockback) this.sprite.x = 144;
+      if (!this.frames.knockback) this.facing = "d";
+      this.moving = true;
+    }
+    this.setDirection(direction);
+  }
+
   // VIHUJEN LIIKKEELLE.
   monsterMovement() {
-    if (!this.alive) return; // Don't move if the monster is dead
-    if (!this.canMove || this.showSpawnEffect) return;
+    if (!this.canMove || !this.alive || this.showSpawnEffect) {
+      this.moving = false;
+      return;
+    }
 
     if (!this.movementInterval && this.canMove) {
       this.randomDirection = Math.floor(Math.random() * 4);
@@ -242,6 +252,7 @@ class Monster {
       }, 1000);
     }
 
+    this.moving = true;
     let dx = 0,
       dy = 0;
     switch (this.randomDirection) {
@@ -274,11 +285,23 @@ class Monster {
     ];
 
     let blocked = false;
+
+    const minX = constants.BORDERLEFT;
+    const maxX = constants.BORDERRIGHT;
+    const minY = constants.BORDERTOP;
+    const maxY = constants.BORDERBOTTOM;
+
     for (const [cx, cy] of corners) {
       const pixel = Util.getMapPixel(this.collisionCtx, cx, cy);
       const value = Util.sumArr(pixel);
       if (value === constants.WALL || value === constants.WATER) {
         blocked = true;
+        this.moving = false;
+        break;
+      }
+      if (cx < minX || cx > maxX || cy < minY || cy > maxY) {
+        blocked = true;
+        this.moving = false;
         break;
       }
     }
@@ -306,6 +329,48 @@ class Monster {
           this.direction = "right";
           break;
       }
+      this.setDirection(this.direction);
+    }
+  }
+
+  setDirection(direction) {
+    if (this.frames.knockback) return;
+    switch (direction) {
+      case "up":
+        this.pos.direction2 = 96;
+        break;
+      case "right":
+        this.pos.direction2 = 144;
+        break;
+      case "down":
+        this.pos.direction2 = 0;
+        break;
+      case "left":
+        this.pos.direction2 = 48;
+        break;
+    }
+  }
+
+  updateDirectionToPlayer() {
+    const dx = this.player.pos.x - this.pos.x;
+    const dy = this.player.pos.y - this.pos.y;
+    if (Math.abs(dx) < this.pos.width && dy > 0) {
+      this.facingDirection = 1; // down
+    } else if (Math.abs(dx) < this.pos.width && dy < 0) {
+      this.facingDirection = 0; // up
+    } else if (Math.abs(dy) < this.pos.height && dx < 0) {
+      this.facingDirection = 2; // left
+    } else if (Math.abs(dy) < this.pos.height && dx > 0) {
+      this.facingDirection = 3; // right
+    }
+  }
+
+  updateAnimation() {
+    this.lastToggle++;
+
+    if (this.lastToggle > 10) {
+      this.monsterAnimationFrame = this.monsterAnimationFrame === 0 ? 1 : 0;
+      this.lastToggle = 0;
     }
   }
 
@@ -349,13 +414,12 @@ class Monster {
     }
   }
 
-  enemyShoot() {
-    if (!this.alive || this.rockIsMoving) return; // Prevent multiple shots
-    if (!this.canShoot) return;
+  enemyShoot(lockedDirection) {
+    if (!this.alive || this.rockIsMoving || !this.canShoot) return; // Prevent multiple shots
 
     this.rockIsMoving = true; // Flag to track active rock
 
-    const rockSize = 28;
+    const rockSize = 24;
     this.rockX = this.pos.x + this.pos.width / 2 - rockSize / 2;
     this.rockY = this.pos.y + this.pos.height / 2 - rockSize / 2;
     this.rockHitBoxX = 24;
@@ -363,13 +427,15 @@ class Monster {
     this.rockSize = rockSize;
 
     this.canMove = false; // Stop monster movement while shooting
+    this.moving = false;
 
-    this.rockDirection = this.randomDirection;
+    this.rockDirection =
+      lockedDirection !== undefined ? lockedDirection : this.facingDirection;
 
     const direction = this.rockDirection;
-    const speed = 3; // PIXELS PER FRAME
+    const speed = 6; // PIXELS PER FRAME
 
-    const shootFlyTime = 3000; // Duration the rock moves (in ms)
+    const shootFlyTime = 1500; // Duration the rock moves (in ms)
     const startTime = Date.now();
 
     const moveRock = () => {
@@ -418,11 +484,13 @@ class Monster {
   }
 
   blockShoot() {
-    const playerHitBox = {
-      x: this.player.pos.x,
-      y: this.player.pos.y,
-      width: this.player.pos.width,
-      height: this.player.pos.height,
+    const playerHitBox = this.player.hitBox;
+
+    const rockHitBox = {
+      x: this.rockX,
+      y: this.rockY,
+      width: this.rockHitBoxX,
+      height: this.rockHitBoxY,
     };
 
     const playerLooksAtMonster =
@@ -439,67 +507,66 @@ class Monster {
         this.player.pos.x > this.pos.x &&
         this.player.facing == "a");
 
-    if (
-      playerHitBox.x < this.rockX + this.rockHitBoxX &&
-      playerHitBox.x + playerHitBox.width > this.rockX &&
-      playerHitBox.y < this.rockY + this.rockHitBoxY &&
-      playerHitBox.y + playerHitBox.height > this.rockY &&
-      playerLooksAtMonster
-    ) {
-      this.blocked = true;
-      this.rockHit = false;
-      this.shieldSound.play();
-      console.log("Blocked");
-      return;
+    if (Util.checkCollision(playerHitBox, rockHitBox)) {
+      if (playerLooksAtMonster && !this.player.attacking) {
+        this.blocked = true;
+        this.rockHit = false;
+        this.shieldSound.play();
+        console.log("Blocked");
+        return;
+      } else {
+        this.rockHit = true;
+        console.log("Player didnt block the rock");
+        this.player.hP("damage", 0.5);
+        this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
+        return;
+      }
     }
-
-    if (
-      playerHitBox.x < this.rockX + this.rockHitBoxX &&
-      playerHitBox.x + playerHitBox.width > this.rockX &&
-      playerHitBox.y < this.rockY + this.rockHitBoxY &&
-      playerHitBox.y + playerHitBox.height > this.rockY &&
-      !playerLooksAtMonster
-    ) {
-      this.rockHit = true;
-      console.log("Player didnt block the rock");
-      this.player.hP("damage", 0.5);
-      this.hud.updateHearts(this.player.hpCount, this.player.maxHPCount);
-      return;
-    } else {
-      this.blocked = false;
-      this.rockHit = false;
-      return;
-    }
+    this.blocked = false;
+    this.rockHit = false;
   }
 
   shootRocksCheckXY() {
+    // Update facing direction before checking if monster sees player
+    this.updateDirectionToPlayer();
+
     const onSameLineX =
       Math.abs(this.pos.x - this.player.pos.x) < this.pos.width;
     const onSameLineY =
       Math.abs(this.pos.y - this.player.pos.y) < this.pos.height;
 
     const monsterSeesPlayer =
-      (this.randomDirection === 1 &&
+      (this.facingDirection === 1 &&
         this.player.pos.y > this.pos.y &&
         onSameLineX) ||
-      (this.randomDirection === 0 &&
+      (this.facingDirection === 0 &&
         this.player.pos.y < this.pos.y &&
         onSameLineX) ||
-      (this.randomDirection === 2 &&
+      (this.facingDirection === 2 &&
         this.player.pos.x < this.pos.x &&
         onSameLineY) ||
-      (this.randomDirection === 3 &&
+      (this.facingDirection === 3 &&
         this.player.pos.x > this.pos.x &&
         onSameLineY);
 
-    if (monsterSeesPlayer) {
-      this.enemyShoot();
-    } else {
+    const directionMap = { up: 0, down: 1, left: 2, right: 3 };
+    if (
+      monsterSeesPlayer &&
+      this.canShoot &&
+      this.facingDirection === directionMap[this.direction]
+    ) {
+      this.canMove = false;
+      this.moving = false;
+      const lockedDirection = this.facingDirection;
+      setTimeout(() => {
+        this.enemyShoot(lockedDirection);
+      }, 600);
+    } else if (!this.canShoot && !this.rockIsMoving) {
       this.canMove = true;
     }
   }
 
-  killmonster(normalAttack = false) {
+  hitMonster(normalAttack = false) {
     if (this.showSpawnEffect) return;
     // Check if the monster is alive
     if (!this.alive) return;
@@ -567,31 +634,36 @@ class Monster {
     ); */
 
     if (collisionDetected) {
-      if (this.IFrames === 0) {
+      if (this.frames.invincibility === 0) {
+        let damageDirection;
+        if (normalAttack) {
+          damageDirection = this.sword.facing;
+        } else {
+          damageDirection = this.sword.beamFacing;
+        }
         this.hpCount -= this.sword.swordDamage;
-        this.IFrames = 1;
-        setTimeout(() => {
-          this.IFrames = 0;
-        }, 1250);
+        this.getDirection(damageDirection);
+        this.frames.invincibility = 90;
+
         if (this.hpCount === 0 || 0 > this.hpCount) {
           this.alive = false; // Mark the monster as dead
-          this.pos.x = 0;
-          this.pos.y = 0;
-          this.width = 0;
-          this.height = 0;
           this.showDeathEffect = true; // Show the death effect
+          this.deathEffectFrame = 10;
+          this.deathEffectTimer = 0;
+          this.canHitPlayer = false;
           console.log("Monster killed!");
         }
         this.sword.enemyHit();
-        if (this.canTakeDamage) this.hitEnemySound.play();
+        if (this.alive) this.frames.knockback = 8;
+        if (this.canTakeDamage && this.hitEnemySound.paused)
+          this.hitEnemySound.play();
         console.log("Monster hit!");
-        if (this.showDeathEffect) {
-          setTimeout(() => {
-            this.showDeathEffect = false;
-          }, 100);
-        }
       }
     }
+  }
+
+  getDirection(damageDirection) {
+    this.pos.damageDirection = damageDirection;
   }
 
   hitPlayer() {
@@ -600,12 +672,7 @@ class Monster {
     // Ensure the monster can only hit the player if allowed
     if (!this.canHitPlayer) return;
 
-    const playerHitBox = {
-      x: this.player.pos.x,
-      y: this.player.pos.y,
-      width: this.player.pos.width,
-      height: this.player.pos.height,
-    };
+    const playerHitBox = this.player.hitBox;
 
     const monsterHitBox = {
       x: this.pos.x,
@@ -633,6 +700,127 @@ class Monster {
         this.canHitPlayer = true;
       }, 1500);
     }
+  }
+
+  drawImage() {
+    if (this.showDeathEffect) {
+      if (this.deathEffectTimer % 3 === 0) {
+        this.deathEffectFrame--;
+        if (this.deathEffectFrame === 1) {
+          this.showDeathEffect = false;
+          this.deathEffectFrame = 10;
+          this.deathEffectTimer = 0;
+          this.pos.x = 0;
+          this.pos.y = 0;
+          this.width = 0;
+          this.height = 0;
+          return;
+        }
+      }
+      this.deathEffectTimer++;
+
+      this.ctx.drawImage(
+        this.deathEffect,
+        this.deathEffectFrame * 48,
+        0,
+        48,
+        48,
+        this.pos.x,
+        this.pos.y,
+        this.pos.width,
+        this.pos.height
+      );
+    }
+
+    if (!this.alive) return; // Don't draw if the monster is dead and no death effect is active
+
+    if (this.showSpawnEffect) {
+      // Draw the spawn effect image
+      this.ctx.drawImage(
+        this.spawnEffect,
+        0,
+        0,
+        48,
+        48,
+        this.pos.x,
+        this.pos.y,
+        this.pos.width,
+        this.pos.height
+      );
+    } else if (this.frames.invincibility) {
+      this.ctx.drawImage(
+        this.enemy,
+        this.sprite.x,
+        this.monsterFrameY2 * this.sprite.height,
+        this.sprite.width,
+        this.sprite.height,
+        this.pos.x,
+        this.pos.y,
+        this.pos.width,
+        this.pos.height
+      );
+    } else if (!this.frames.invincibility) {
+      // Draw the monster image
+      this.ctx.drawImage(
+        this.enemy,
+        this.sprite.x,
+        (this.monsterFrameY + this.monsterAnimationFrame) * this.sprite.height,
+        this.sprite.width,
+        this.sprite.height,
+        this.pos.x,
+        this.pos.y,
+        this.pos.width,
+        this.pos.height
+      );
+    }
+  }
+
+  animateInvincible() {
+    if (!this.frames.invincibility) {
+      if (this.monsterColorInterval) {
+        clearInterval(this.monsterColorInterval);
+        this.monsterColorInterval = null;
+      }
+      return;
+    }
+    if (this.monsterColorInterval) return;
+    this.monsterColorInterval = setInterval(() => {
+      this.monsterInvincibilityFrame = (this.monsterInvincibilityFrame + 1) % 3;
+      if (
+        this.monsterAnimationFrame === 0 &&
+        this.monsterInvincibilityFrame === 0
+      )
+        this.monsterFrameY2 = 0;
+      if (
+        this.monsterAnimationFrame === 1 &&
+        this.monsterInvincibilityFrame === 0
+      )
+        this.monsterFrameY2 = 1;
+      if (
+        this.monsterAnimationFrame === 0 &&
+        this.monsterInvincibilityFrame === 1
+      )
+        this.monsterFrameY2 = 2;
+      if (
+        this.monsterAnimationFrame === 1 &&
+        this.monsterInvincibilityFrame === 1
+      )
+        this.monsterFrameY2 = 3;
+      if (
+        this.monsterAnimationFrame === 0 &&
+        this.monsterInvincibilityFrame === 2
+      )
+        this.monsterFrameY2 = 4;
+      if (
+        this.monsterAnimationFrame === 1 &&
+        this.monsterInvincibilityFrame === 2
+      )
+        this.monsterFrameY2 = 5;
+      if (this.frames.invincibility === 1) {
+        clearInterval(this.monsterColorInterval);
+        this.monsterColorInterval = null;
+      }
+    }, 55);
   }
 }
 

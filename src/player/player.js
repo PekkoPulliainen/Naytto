@@ -31,6 +31,7 @@ class Player {
       height: 48,
       direction: 0,
       direction2: 0,
+      direction3: 0,
     };
 
     this.hitBox = {
@@ -67,6 +68,8 @@ class Player {
 
     this.frameX = 0;
     this.playerFrameX = 0;
+    this.playerFrameX2 = 5;
+    this.playerFrameY = 0;
 
     this.lastToggle = 0;
     this.facing = "s"; // START FACING DOWN
@@ -74,7 +77,7 @@ class Player {
     this.attackFrameTimer = 0; // ATTACK FRAME TIMER
 
     this.keys = {}; // KEY STATE
-    this.canAttack = false; // ALLOW ATTACKS
+    this.canAttack = true; // ALLOW ATTACKS
     this.spacePressed = false; // SPACE KEY PRESSED
 
     this.maxHPCount = 3; // MAX HP
@@ -84,7 +87,7 @@ class Player {
 
     this.rubinCount = 0;
 
-    this.hasSword = false;
+    this.hasSword = true;
     this.swordIndex = 0;
     this.pickingUpSword = false;
 
@@ -104,12 +107,17 @@ class Player {
       this.hpCount = Math.max(0, this.hpCount - number); // Reduce health
       this.hurtSound.play(); // Play hurt sound
       this.frames.invincibility = 90; // invincibility cooldown
+      this.frames.knockback = 8;
 
       console.log("Player took damage! Current HP:", this.hpCount);
       if (this.hpCount === 0) {
         console.log("Player died...");
         this.setAlive(false);
-      }
+      } /* else {
+        setTimeout(() => {
+          this.canMove = true;
+        }, 300);
+      } */
     } else if (i === "heal") {
       this.hpCount = Math.min(6, this.hpCount + number); // Heal health
     } else if (i === "set") {
@@ -128,7 +136,12 @@ class Player {
     if (this.frames.invincibility) this.frames.invincibility--; // TIMER
   }
 
+  render() {
+    if (this.frames.invincibility) this.animateInvincible();
+  }
+
   setDirection(direction) {
+    if (this.frames.knockback) return;
     switch (direction) {
       case "up":
         this.pos.direction2 = 96;
@@ -241,32 +254,36 @@ class Player {
       this.hitBox.y += y;
       this.pos.x += x;
       this.hitBox.x += x;
-      this.playerFrameX = 2;
-      this.facing = "w";
+      if (!this.frames.knockback) this.playerFrameX = 2;
+      this.playerFrameX2 = 7;
+      if (!this.frames.knockback) this.facing = "w";
       this.moving = true;
     } else if (direction === "down") {
       this.pos.y += y;
       this.hitBox.y += y;
       this.pos.x += x;
       this.hitBox.x += x;
-      this.facing = "s";
-      this.playerFrameX = 0;
+      if (!this.frames.knockback) this.playerFrameX = 0;
+      this.playerFrameX2 = 5;
+      if (!this.frames.knockback) this.facing = "s";
       this.moving = true;
     } else if (direction === "left") {
       this.pos.x += x;
       this.hitBox.x += x;
       this.pos.y += y;
       this.hitBox.y += y;
-      this.playerFrameX = 1;
-      this.facing = "a";
+      if (!this.frames.knockback) this.playerFrameX = 1;
+      this.playerFrameX2 = 6;
+      if (!this.frames.knockback) this.facing = "a";
       this.moving = true;
     } else if (direction === "right") {
       this.pos.x += x;
       this.hitBox.x += x;
       this.pos.y += y;
       this.hitBox.y += y;
-      this.playerFrameX = 3;
-      this.facing = "d";
+      if (!this.frames.knockback) this.playerFrameX = 3;
+      this.playerFrameX2 = 8;
+      if (!this.frames.knockback) this.facing = "d";
       this.moving = true;
     }
     this.setDirection(direction);
@@ -283,7 +300,9 @@ class Player {
     // ATTACK DURATION
     if (this.attacking && timestamp - this.attackFrameTimer >= 300) {
       this.attacking = false;
-      this.canAttack = true;
+      setTimeout(() => {
+        this.canAttack = true;
+      }, 125);
       console.log("Attack finished");
     }
     // Update sword state
@@ -489,6 +508,19 @@ class Player {
           drawHeight
         );
       }
+    }
+    if (this.frames.invincibility) {
+      this.ctx.drawImage(
+        this.sprite,
+        this.playerFrameX2 * this.pos.width,
+        this.playerFrameY * this.pos.height,
+        this.pos.width,
+        this.pos.height,
+        Math.round(this.pos.x),
+        Math.round(this.pos.y),
+        this.pos.width,
+        this.pos.height
+      );
     } else {
       this.ctx.drawImage(
         this.sprite,
@@ -516,6 +548,43 @@ class Player {
       this.pos.width,
       this.pos.height
     );
+  }
+
+  animateInvincible() {
+    if (!this.frames.invincibility) {
+      if (this.playerColorInterval) {
+        clearInterval(this.playerColorInterval);
+        this.playerColorInterval = null;
+      }
+      return;
+    }
+    if (this.playerColorInterval) return;
+
+    this.playerColorInterval = setInterval(() => {
+      this.pos.direction3 = (this.pos.direction3 + 1) % 3;
+      if (this.pos.direction === 0 && this.pos.direction3 === 0)
+        this.playerFrameY = 0;
+      if (this.pos.direction === 1 && this.pos.direction3 === 0)
+        this.playerFrameY = 3;
+      if (this.pos.direction === 2 && this.pos.direction3 === 0)
+        this.playerFrameY = 6;
+      if (this.pos.direction === 0 && this.pos.direction3 === 1)
+        this.playerFrameY = 1;
+      if (this.pos.direction === 1 && this.pos.direction3 === 1)
+        this.playerFrameY = 4;
+      if (this.pos.direction === 2 && this.pos.direction3 === 1)
+        this.playerFrameY = 7;
+      if (this.pos.direction === 0 && this.pos.direction3 === 2)
+        this.playerFrameY = 2;
+      if (this.pos.direction === 1 && this.pos.direction3 === 2)
+        this.playerFrameY = 5;
+      if (this.pos.direction === 2 && this.pos.direction3 === 2)
+        this.playerFrameY = 8;
+      if (this.frames.invincibility === 1) {
+        clearInterval(this.playerColorInterval);
+        this.playerColorInterval = null;
+      }
+    }, 80);
   }
 }
 

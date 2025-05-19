@@ -179,7 +179,7 @@ class Game {
   init() {
     this.board.render(); // Render the board
     this.hud.render(); // Render the HUD
-    //this.player.render();
+    this.player.render();
     this.hud.renderStartPage(); // Render the start page
     requestAnimationFrame((timestamp) => this.gameLoop(timestamp)); // Start the game loop
   }
@@ -206,14 +206,16 @@ class Game {
 
     // FOR MONSTERS
     this.monsters.forEach((monster) => {
-      monster.killmonster(true); // Check if the monster is hit
-      monster.killmonster(false);
+      monster.hitMonster(true); // Check if the monster is hit
+      monster.hitMonster(false);
+      monster.update();
       monster.hitPlayer();
       monster.drawImage(); // DRAW MONSTER
       monster.drawRock();
       monster.blockShoot();
       monster.monsterMovement();
       monster.shootRocksCheckXY();
+      monster.updateAnimation();
     });
 
     if (this.player.sword.launching) {
@@ -256,8 +258,16 @@ class Game {
       this.dungeonAnimated = false;
     }
     this.processInput(collisionCtx);
-    //this.stepUnits(collisionCtx)
+    this.stepUnits(collisionCtx);
     this.player.step();
+  }
+
+  stepUnits(collisionCtx) {
+    if (this.player.frames.knockback) this.knockBackPlayer(collisionCtx);
+    this.monsters.forEach((monster) => {
+      if (monster.frames.knockback)
+        this.knockBackMonster(collisionCtx, monster);
+    });
   }
 
   draw() {
@@ -269,7 +279,7 @@ class Game {
     }
     //this.drawEnemies();
     //this.drawAttacks();
-    //this.player.render();
+    this.player.render();
   }
 
   scanGrid(ctx) {
@@ -289,7 +299,7 @@ class Game {
   }
 
   knockBackPlayer(ctx) {
-    let faceDirection = this.player.pos.direction;
+    let faceDirection = this.player.pos.direction2;
     let x = this.player.pos.x;
     let y = this.player.pos.y;
 
@@ -298,25 +308,54 @@ class Game {
       y < 634 &&
       !this.impassableTerrain("down", ctx)
     ) {
-      this.player.move(0, 12);
+      this.player.move(0, 12, "down");
     } else if (
       faceDirection === 144 &&
       x > 14 &&
       !this.impassableTerrain("left", ctx)
     ) {
-      this.player.move(-12, 0);
+      this.player.move(-12, 0, "left");
     } else if (
       faceDirection === 0 &&
       y > 188 &&
       !this.impassableTerrain("up", ctx)
     ) {
-      this.player.move(0, -12);
+      this.player.move(0, -12, "up");
     } else if (
       faceDirection === 48 &&
       x < 706 &&
       !this.impassableTerrain("right", ctx)
     ) {
-      this.player.move(12, 0);
+      this.player.move(12, 0, "right");
+    }
+  }
+
+  knockBackMonster(ctx, monster) {
+    let hitDirection = monster.pos.damageDirection;
+    let faceDirection = monster.pos.direction2;
+    let x = monster.pos.x;
+    let y = monster.pos.y;
+
+    if (
+      hitDirection === "s" &&
+      !this.impassableTerrainMonster("down", ctx, monster)
+    ) {
+      monster.move(0, 12, "down");
+    } else if (
+      hitDirection === "a" &&
+      !this.impassableTerrainMonster("left", ctx, monster)
+    ) {
+      monster.move(-12, 0, "left");
+    } else if (
+      hitDirection === "w" &&
+      !this.impassableTerrainMonster("up", ctx, monster)
+    ) {
+      monster.move(0, -12, "up");
+    } else if (
+      hitDirection === "d" &&
+      !this.impassableTerrainMonster("right", ctx, monster)
+    ) {
+      monster.move(12, 0, "right");
     }
   }
 
@@ -650,6 +689,36 @@ class Game {
       );
       return this.checkIfBarrier(topPixel, bottomPixel);
     }
+  }
+
+  impassableTerrainMonster(direction, ctx, monster) {
+    const { x, y, width, height } = monster.pos;
+    let checkPoints = [];
+    if (direction === "up") {
+      checkPoints = [
+        [x + 3, y - 3],
+        [x + width - 3, y - 3],
+      ];
+    } else if (direction === "down") {
+      checkPoints = [
+        [x + 3, y + height + 3],
+        [x + width - 3, y + height + 3],
+      ];
+    } else if (direction === "left") {
+      checkPoints = [
+        [x - 3, y + 3],
+        [x - 3, y + height - 3],
+      ];
+    } else if (direction === "right") {
+      checkPoints = [
+        [x + width + 3, y + 3],
+        [x + width + 3, y + height - 3],
+      ];
+    }
+    const [p1, p2] = checkPoints;
+    const pixel1 = Util.getMapPixel(ctx, p1[0], p1[1]);
+    const pixel2 = Util.getMapPixel(ctx, p2[0], p2[1]);
+    return this.checkIfBarrier(pixel1, pixel2);
   }
 
   processInput(ctx) {
